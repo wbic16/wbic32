@@ -86,8 +86,8 @@ sub GetBitcoinPriceRating
 	my $critical = 0;
 	if ($difference > 0.2) { $critical = 1; }
 	if ($difference < -0.2) { $critical = 1; }
+	if ($critical == 0 && $price > $next_average * 0.95) { $rating = 'Sell' }
 	if ($next_average * 0.75 > $price) { $rating = 'Buy' }
-	if ($critical == 0 && $price > $next_average * 0.75) { $rating = 'Sell' }
 
 	return $rating;
 }
