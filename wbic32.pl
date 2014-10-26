@@ -1,110 +1,211 @@
+use strict;
+use warnings;
+
 use Net::Twitter;
 use Scalar::Util 'blessed';
+use POSIX;
+use File::Slurp;
+use LWP::Simple;
+use Config::Simple;
+use File::Touch;
+use JSON;
+use Data::Dumper;
+use feature qw(say);
 
-my %terms;
-my $best1;
-my $best2;
-my $best3;
-
-my $message = 'Oh dear: I couldn\'t find wbic16 again!';
-
-# read wbic16's timeline
-my $wbic16_consumer_key = '';
-my $wbic16_consumer_secret = '';
-my $wbic16_token = '';
-my $wbic16_token_secret = '';
-
-my $wb = Net::Twitter->new(
-    traits   => [qw/API::RESTv1_1/],
-    consumer_key        => $wbic16_consumer_key,
-    consumer_secret     => $wbic16_consumer_secret,
-    access_token        => $wbic16_token,
-    access_token_secret => $wbic16_token_secret,
-);
-
-my $statuses = $wb->home_timeline();
-for my $status ( @$statuses )
+my $config_file = 'willbot.config';
+my $config = new Config::Simple($config_file);
+if ($config == 0)
 {
-	my $cleanString = $status->{text};
-	my @tmp = split(' ', $cleanString);
-	for my $t ( @tmp )
+	$config = new Config::Simple(syntax=>'simple');
+}
+our %parms = $config->vars();
+exit(Main());
+
+sub Main
+{
+	my $date = strftime "%A, %B %d, %Y", localtime;
+
+	LoadBitcoinPriceData($date);
+	PostBitcoinRating($date, GetBitcoinPriceRating());
+	#PostToTimeline(GatherData());
+	
+	$config->write($config_file);
+
+	return 0;
+}
+
+sub LoadBitcoinPriceData
+{
+	our %parms;
+	my $date = shift;
+	my $price = $parms{'last_price'};
+	my $btc_date = $parms{'last_checked'};	
+
+	# TODO: Implement comparison to today's date
+	if (! exists $parms{'last_checked'})
 	{
-		if (length($t) > 0)
+		say "Looking up new values...";
+		my $data = GetBitcoinAverageHash();
+		$price = $data->{'24h_avg'};
+		$btc_date = $data->{'timestamp'};
+		$config->param("last_price", $price);
+	}
+	# Hack to keep quotes when saving
+	$config->param("last_checked", "\"" . $btc_date . "\"");
+
+	say "Last Checked: " . $btc_date;
+	say "Last Price: " . $price;
+}
+
+sub GetBitcoinAverageHash
+{
+	my $url = "https://api.bitcoinaverage.com/ticker/USD/";
+	my $content = get $url;
+	return decode_json $content;
+}
+
+sub GetBitcoinAveragePrice
+{
+	my $key = '24h_avg';
+	my $data = GetBitcoinAverageHash();
+	return $data->{$key};
+}
+
+sub GetBitcoinPriceRating
+{
+	my $rating = 'Hold';
+	my $price = GetBitcoinAveragePrice();
+	my $last_price = $parms{'last_price'};
+	my $last_average = $parms{'last_average'};
+	my $xp = floor($price * 100 + 0.5);
+	my $la = floor($last_average * 100 + 0.5);
+	my $next_average = floor(($la * 29 + $xp)/30 + 0.5) / 100;
+	$config->param("last_average", $next_average);
+	say "Average: $next_average";
+	my $difference = floor(100*($next_average - $last_average) + 0.5)/100;
+	my $critical = 0;
+	if ($difference > 0.2) { $critical = 1; }
+	if ($difference < -0.2) { $critical = 1; }
+	if ($next_average * 0.75 > $price) { $rating = 'Buy' }
+	if ($critical == 0 && $price > $next_average * 0.75) { $rating = 'Sell' }
+
+	return $rating;
+}
+
+sub PostBitcoinRating
+{
+	my $date = shift;
+	my $rating = shift;
+	my $message = "Willbot Bitcoin Rating for $date: $rating";
+	PostToTimeline($message);
+}
+
+sub GatherData
+{
+	my %terms;
+	my $best1;
+	my $best2;
+	my $best3;
+
+	# read wbic16's timeline
+	my $wb = login('', '', '', '');
+
+	my $statuses = $wb->home_timeline({ count => 200 });
+	for my $status (@$statuses)
+	{
+		my $cleanString = $status->{text};
+		my @tmp = split(' ', $cleanString);
+		for my $t (@tmp)
 		{
-			if (length($t) > length($best1))
+			if (length($t) > 0)
 			{
-				$best3 = $best2;
-				$best2 = $best1;
-				$best1 = $t;
-			}
-			if (! exists $terms{$t})
-			{
-				$terms{$t} = 1;
-			}
-			else
-			{
-				$terms{$t} = $terms{$t} + 1;
+				if (length($t) > length($best1))
+				{
+					$best3 = $best2;
+					$best2 = $best1;
+					$best1 = $t;
+				}
+				if (! exists $terms{$t})
+				{
+					$terms{$t} = 1;
+				}
+				else
+				{
+					$terms{$t} = $terms{$t} + 1;
+				}
 			}
 		}
 	}
-}
 
-my @unique = keys %terms;
-my @top;
+	my @unique = keys %terms;
+	my @top;
 
-for my $r (@unique)
-{
-	$top[$terms{$r}] = $r;
-}
-
-$message = $top[0] . ' ' . $best1 . ' ' . $top[1] . ' ' . $top[2] . ' ' . $best3;
-my $top_size = scalar @top;
-for (my $i = 3; $i < $top_size; ++$i)
-{
-	$message .= ' ' . $top[$i];
-}
-for my $r (@unique)
-{
-	$message .= ' ' . $r;
-}
-my @cleanup = split(' ', $message);
-$message = '';
-for my $c (@cleanup) {
-	my $temp = $message . ' ' . $c;
-	if (length($temp) >= 140) {
-		last;
+	for my $r (@unique)
+	{
+		$top[$terms{$r}] = $r;
 	}
-	$message = $temp;
+
+	my $message = $top[0] . ' ' . $best1 . ' ' . $top[1] . ' ' . $top[2] . ' ' . $best3;
+	my $top_size = scalar @top;
+	for (my $i = 3; $i < $top_size; ++$i)
+	{
+		$message .= ' ' . $top[$i];
+	}
+	for my $r (@unique)
+	{
+		$message .= ' ' . $r;
+	}
+	my @cleanup = split(' ', $message);
+	$message = '';
+	for my $c (@cleanup)
+	{
+		my $temp = $message . ' ' . $c;
+		if (length($temp) >= 140) {
+			last;
+		}
+		$message = $temp;
+	}
+	$message =~ s/^\s*//g;
+	$message = substr $message, 0, 140;
+
+	print "\n-----------------------------------\n";
+	print "Message: $message\n";
+	print "Length: " . length($message);
+	print "\n-----------------------------------\n";
+
+	return $message;
 }
-$message =~ s/^\s*//g;
-$message = substr $message, 0, 140;
 
-print "\n-----------------------------------\n";
-print "Message: $message\n";
-print "Length: " . length($message);
-print "\n-----------------------------------\n";
+sub PostToTimeline()
+{
+	my $message = shift;
+	my $nt = login('', '', '', '');
 
-# post to wbic32's timeline
+	my $result = $nt->update($message);
+	if (my $err = $@)
+	{
+		die $@ unless blessed $err && $err->isa('Net::Twitter::Error');
+		warn "HTTP Response Code: ", $err->code, "\n",
+				"HTTP Message......: ", $err->message, "\n",
+				"Twitter error.....: ", $err->error, "\n";
+	}
+}
 
-my $consumer_key = '';
-my $consumer_secret = '';
-my $token = '';
-my $token_secret = '';
+sub login
+{
+	my $consumer_key = shift;
+	my $consumer_secret = shift;
+	my $token = shift;
+	my $token_secret = shift;
 
-my $nt = Net::Twitter->new(
+	my $handle = Net::Twitter->new(
     traits   => [qw/API::RESTv1_1/],
     consumer_key        => $consumer_key,
     consumer_secret     => $consumer_secret,
     access_token        => $token,
     access_token_secret => $token_secret,
-);
+	 ssl                 => 1
+	);
 
-my $result = $nt->update($message);
-
-if ( my $err = $@ )
-{
-	die $@ unless blessed $err && $err->isa('Net::Twitter::Error');
-	warn "HTTP Response Code: ", $err->code, "\n",
-			"HTTP Message......: ", $err->message, "\n",
-			"Twitter error.....: ", $err->error, "\n";
+	return $handle;
 }
