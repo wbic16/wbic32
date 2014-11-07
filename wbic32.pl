@@ -27,7 +27,6 @@ sub Main
 
 	LoadBitcoinPriceData($date);
 	PostBitcoinRating($date, GetBitcoinPriceRating());
-	#PostToTimeline(GatherData());
 	
 	$config->write($config_file);
 
@@ -73,7 +72,9 @@ sub GetBitcoinAveragePrice
 
 sub GetBitcoinPriceRating
 {
-	my $rating = 'Hold';
+	my @hold_messages = ('Ho Ho Ho Hold!', 'HODLing like a boss', 'Just keep keep holding, just keep holding ... what do we do we HODL!');
+	my $luck = int(rand(3));
+	my $rating = $hold_messages[$luck];
 	my $price = GetBitcoinAveragePrice();
 	my $last_price = $parms{'last_price'};
 	my $last_average = $parms{'last_average'};
@@ -96,7 +97,7 @@ sub PostBitcoinRating
 {
 	my $date = shift;
 	my $rating = shift;
-	my $message = "Willbot Bitcoin Rating for $date: $rating";
+	my $message = "Willbot #Bitcoin Rating for $date: $rating";
 	PostToTimeline($message);
 }
 
