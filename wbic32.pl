@@ -76,7 +76,7 @@ sub GetBitcoinPriceRating
 	my $luck = int(rand(3));
 	my $rating = $hold_messages[$luck];
 	my $price = GetBitcoinAveragePrice();
-	my $last_price = $parms{'last_price'};
+	#my $last_price = $parms{'last_price'};
 	my $last_average = $parms{'last_average'};
 	my $xp = floor($price * 100 + 0.5);
 	my $la = floor($last_average * 100 + 0.5);
@@ -87,10 +87,51 @@ sub GetBitcoinPriceRating
 	my $critical = 0;
 	if ($difference > 0.2) { $critical = 1; }
 	if ($difference < -0.2) { $critical = 1; }
-	if ($critical == 0 && $price > $next_average * 0.95) { $rating = 'Sell' }
-	if ($next_average * 0.75 > $price) { $rating = 'Buy' }
+	if ($difference > 1.0) { $critical = 0.5; }
+	if ($difference < -1.0) { $critical = 0.5; }
+	if ($critical == 0 && $price > $next_average * 0.95) { $rating = 'Soft Sell'; }
+	if ($critical == 0 && $price > $next_average * 1.15) { $rating = 'Peak Sell'; }
+	if ($critical == 0.5 && $price > $next_average * 1.25) { $rating = 'Spiking Sell'; }
+	if ($critical == 0.5 && $next_average * 0.75 > $price) { $rating = 'Dropping Buy'; }
+	if ($critical == 0 && $next_average * 0.95 > $price) { $rating = 'Valley Buy'; }
 
-	return $rating;
+	my $advice = $rating;
+	my $baseline_rating = $rating;
+	my $bcrit = 0;
+	my $ecrit = 0;
+	my $min_price = floor(100 * $last_average * 0.9 + 0.5) / 100;
+	my $max_price = floor(100 * $last_average * 1.11 + 0.5) / 100;
+	for (my $price = $min_price; $price <= $max_price; $price += 1)
+	{
+		$xp = floor($price * 100 + 0.5);
+		$la = floor($last_average * 100 + 0.5);
+		$next_average = floor(($la * 29 + $xp)/30 + 0.5) / 100;
+		my $difference = floor(100*($next_average - $last_average) + 0.5)/100;
+		my $critical = 0;
+		if ($difference > 0.2) { $critical = 1; }
+		if ($difference < -0.2) { $critical = 1; }
+		if ($difference < 1.0 && $difference > 0.2) { $critical = 0.5; }
+		if ($difference > -1.0 && $difference < -0.2) { $critical = 0.5; }
+
+		if ($critical == 0 && $price > $next_average * 0.95) { $rating = 'Soft Sell'; }
+		if ($critical == 0 && $price > $next_average * 1.15) { $rating = 'Peak Sell'; }
+		if ($critical == 0.5 && $price > $next_average * 1.2) { $rating = 'Spiking Sell'; }
+		if ($critical == 0.5 && $next_average * 0.75 > $price) { $rating = 'Dropping Buy'; }
+		if ($critical == 0 && $next_average * 0.85 > $price) { $rating = 'Valley Buy'; }
+
+		if ($bcrit == 0 && $critical == 0)
+		{
+			$bcrit = $price;
+			$advice = $rating;
+		}
+		if ($critical == 0)
+		{
+			$ecrit = $price;
+		}
+		$rating = $hold_messages[$luck];
+	}
+
+	return $advice . ": $bcrit - $ecrit";
 }
 
 sub PostBitcoinRating
@@ -99,6 +140,7 @@ sub PostBitcoinRating
 	my $rating = shift;
 	my $message = "Willbot #Bitcoin Rating for $date: $rating";
 	PostToTimeline($message);
+	say $message;
 }
 
 sub GatherData

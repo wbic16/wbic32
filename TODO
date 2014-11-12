@@ -1,0 +1,11 @@
+* ERROR checking!!!
+* test against random periods in Bitcoin's history vs DCA
+** adjust accordingly
+* add symmetry
+** min-buy: critical && price below average
+** max-sell: critical && price above average
+** under-buy: price well below average && semi-critical
+** over-sell: price well above average && semi-critical
+** hold: all other days
+* automate volatility targets
+** bollinger bands?
