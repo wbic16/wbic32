@@ -12,6 +12,18 @@ use JSON;
 use Data::Dumper;
 use feature qw(say);
 
+my $mode = 'Active';
+my $arg = shift;
+if (defined $arg)
+{
+	if ($arg eq 'dry-run')
+	{
+		$mode = 'Dry-Run';
+	}
+}
+
+say "Running Mode: " . $mode;
+
 my $config_file = 'willbot.config';
 my $config = new Config::Simple($config_file);
 if ($config == 0)
@@ -20,6 +32,11 @@ if ($config == 0)
 }
 our %parms = $config->vars();
 exit(Main());
+
+sub IsActive
+{
+	return $mode eq 'Active';
+}
 
 sub Main
 {
@@ -46,10 +63,13 @@ sub LoadBitcoinPriceData
 		say "Looking up new values...";
 		my $data = GetBitcoinAverageHash();
 		$price = $data->{'24h_avg'};
-		$btc_date = $data->{'timestamp'};
-		$config->param("last_price", $price);
+		if (IsActive())
+		{
+			$btc_date = $data->{'timestamp'};
+			$config->param("last_price", $price);
+		}
 	}
-	# Hack to keep quotes when saving
+	# Hack to keep quotes
 	$config->param("last_checked", "\"" . $btc_date . "\"");
 
 	say "Last Checked: " . $btc_date;
@@ -67,7 +87,9 @@ sub GetBitcoinAveragePrice
 {
 	my $key = '24h_avg';
 	my $data = GetBitcoinAverageHash();
-	return $data->{$key};
+	my $price = $data->{$key};
+	say "Price: $price";
+	return $price;
 }
 
 sub GetBitcoinPriceRating
@@ -81,9 +103,13 @@ sub GetBitcoinPriceRating
 	my $xp = floor($price * 100 + 0.5);
 	my $la = floor($last_average * 100 + 0.5);
 	my $next_average = floor(($la * 29 + $xp)/30 + 0.5) / 100;
-	$config->param("last_average", $next_average);
+	if (IsActive())
+	{
+		$config->param("last_average", $next_average);
+	}
 	say "Average: $next_average";
 	my $difference = floor(100*($next_average - $last_average) + 0.5)/100;
+	say "Difference: $difference";
 	my $critical = 0;
 	if ($difference > 0.2) { $critical = 1; }
 	if ($difference < -0.2) { $critical = 1; }
@@ -99,8 +125,8 @@ sub GetBitcoinPriceRating
 	my $baseline_rating = $rating;
 	my $bcrit = 0;
 	my $ecrit = 0;
-	my $min_price = floor(100 * $last_average * 0.9 + 0.5) / 100;
-	my $max_price = floor(100 * $last_average * 1.11 + 0.5) / 100;
+	my $min_price = floor(100 * $price * 0.95 + 0.5) / 100;
+	my $max_price = floor(100 * $price * 1.05 + 0.5) / 100;
 	for (my $price = $min_price; $price <= $max_price; $price += 1)
 	{
 		$xp = floor($price * 100 + 0.5);
@@ -131,7 +157,11 @@ sub GetBitcoinPriceRating
 		$rating = $hold_messages[$luck];
 	}
 
-	return $advice . ": $bcrit - $ecrit";
+	if ($bcrit != 0 && $ecrit != $bcrit)
+	{
+		$advice .= ": $bcrit - $ecrit";
+	}
+	return $advice;
 }
 
 sub PostBitcoinRating
@@ -139,8 +169,12 @@ sub PostBitcoinRating
 	my $date = shift;
 	my $rating = shift;
 	my $message = "Willbot #Bitcoin Rating for $date: $rating";
-	PostToTimeline($message);
+	say "Length: " . length($message);
 	say $message;
+	if (IsActive())
+	{
+		PostToTimeline($message);
+	}
 }
 
 sub GatherData
