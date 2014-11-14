@@ -12,6 +12,8 @@ use JSON;
 use Data::Dumper;
 use feature qw(say);
 
+require 'login_credentials.inc';
+
 my $mode = 'Active';
 my $arg = shift;
 if (defined $arg)
@@ -92,6 +94,12 @@ sub GetBitcoinAveragePrice
 	return $price;
 }
 
+sub RoundToTwoDecimals
+{
+	my $value = shift;
+	return floor(100 * $value + 0.5) / 100;
+}
+
 sub GetBitcoinPriceRating
 {
 	my @hold_messages = ('Ho Ho Ho Hold!', 'HODLing like a boss', 'Just keep keep holding, just keep holding ... what do we do we HODL!');
@@ -115,8 +123,8 @@ sub GetBitcoinPriceRating
 	if ($difference < -0.2) { $critical = 1; }
 	if ($difference > 1.0) { $critical = 0.5; }
 	if ($difference < -1.0) { $critical = 0.5; }
-	if ($critical == 0 && $price > $next_average * 0.95) { $rating = 'Soft Sell'; }
-	if ($critical == 0 && $price > $next_average * 1.15) { $rating = 'Peak Sell'; }
+	if ($critical == 0 && $price > $next_average * 0.9) { $rating = 'Soft Sell'; }
+	if ($critical == 0 && $price > $next_average * 1.11) { $rating = 'Peak Sell'; }
 	if ($critical == 0.5 && $price > $next_average * 1.25) { $rating = 'Spiking Sell'; }
 	if ($critical == 0.5 && $next_average * 0.75 > $price) { $rating = 'Dropping Buy'; }
 	if ($critical == 0 && $next_average * 0.95 > $price) { $rating = 'Valley Buy'; }
@@ -125,9 +133,10 @@ sub GetBitcoinPriceRating
 	my $baseline_rating = $rating;
 	my $bcrit = 0;
 	my $ecrit = 0;
-	my $min_price = floor(100 * $price * 0.95 + 0.5) / 100;
-	my $max_price = floor(100 * $price * 1.05 + 0.5) / 100;
-	for (my $price = $min_price; $price <= $max_price; $price += 1)
+	my $min_price = RoundToTwoDecimals($price * 0.95);
+	my $max_price = RoundToTwoDecimals($price * 1.05);
+	my $iteration = RoundToTwoDecimals(($max_price - $min_price) / 100);
+	for (my $price = $min_price; $price <= $max_price; $price += $iteration)
 	{
 		$xp = floor($price * 100 + 0.5);
 		$la = floor($last_average * 100 + 0.5);
@@ -139,8 +148,8 @@ sub GetBitcoinPriceRating
 		if ($difference < 1.0 && $difference > 0.2) { $critical = 0.5; }
 		if ($difference > -1.0 && $difference < -0.2) { $critical = 0.5; }
 
-		if ($critical == 0 && $price > $next_average * 0.95) { $rating = 'Soft Sell'; }
-		if ($critical == 0 && $price > $next_average * 1.15) { $rating = 'Peak Sell'; }
+		if ($critical == 0 && $price > $next_average * 0.9) { $rating = 'Soft Sell'; }
+		if ($critical == 0 && $price > $next_average * 1.11) { $rating = 'Peak Sell'; }
 		if ($critical == 0.5 && $price > $next_average * 1.2) { $rating = 'Spiking Sell'; }
 		if ($critical == 0.5 && $next_average * 0.75 > $price) { $rating = 'Dropping Buy'; }
 		if ($critical == 0 && $next_average * 0.85 > $price) { $rating = 'Valley Buy'; }
@@ -184,9 +193,7 @@ sub GatherData
 	my $best2;
 	my $best3;
 
-	# read wbic16's timeline
-	my $wb = login('', '', '', '');
-
+	my $wb = getLoginFor('wbic16');
 	my $statuses = $wb->home_timeline({ count => 200 });
 	for my $status (@$statuses)
 	{
@@ -253,10 +260,10 @@ sub GatherData
 	return $message;
 }
 
-sub PostToTimeline()
+sub PostToTimeline
 {
 	my $message = shift;
-	my $nt = login('', '', '', '');
+	my $nt = getLoginFor('wbic32');
 
 	my $result = $nt->update($message);
 	if (my $err = $@)
