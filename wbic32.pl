@@ -156,12 +156,12 @@ sub GetBitcoinPriceRating
 
 		if ($bcrit == 0 && $critical == 0)
 		{
-			$bcrit = $price;
+			$bcrit = RoundToTwoDecimals($price);
 			$advice = $rating;
 		}
 		if ($critical == 0)
 		{
-			$ecrit = $price;
+			$ecrit = RoundToTwoDecimals($price);
 		}
 		$rating = $hold_messages[$luck];
 	}
