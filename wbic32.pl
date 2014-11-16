@@ -24,10 +24,10 @@ if (defined $arg)
 	}
 }
 
-say "Running Mode: " . $mode;
+say "Running Mode: $mode";
 
-my $config_file = 'willbot.config';
-my $config = new Config::Simple($config_file);
+our $config_file = 'willbot.config';
+our $config = new Config::Simple($config_file);
 if ($config == 0)
 {
 	$config = new Config::Simple(syntax=>'simple');
@@ -60,16 +60,13 @@ sub LoadBitcoinPriceData
 	my $btc_date = $parms{'last_checked'};	
 
 	# TODO: Implement comparison to today's date
-	if (! exists $parms{'last_checked'})
+	say "Looking up new values...";
+	my $data = GetBitcoinAverageHash();
+	$price = $data->{'24h_avg'};
+	if (IsActive())
 	{
-		say "Looking up new values...";
-		my $data = GetBitcoinAverageHash();
-		$price = $data->{'24h_avg'};
-		if (IsActive())
-		{
-			$btc_date = $data->{'timestamp'};
-			$config->param("last_price", $price);
-		}
+		$btc_date = $data->{'timestamp'};
+		$config->param("last_price", $price);
 	}
 	# Hack to keep quotes
 	$config->param("last_checked", "\"" . $btc_date . "\"");
