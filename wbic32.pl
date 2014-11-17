@@ -126,48 +126,52 @@ sub GetBitcoinPriceRating
 	if ($critical == 0.5 && $next_average * 0.75 > $price) { $rating = 'Dropping Buy'; }
 	if ($critical == 0 && $next_average * 0.95 > $price) { $rating = 'Valley Buy'; }
 
-	my $advice = $rating;
-	my $baseline_rating = $rating;
-	my $bcrit = 0;
-	my $ecrit = 0;
-	my $min_price = RoundToTwoDecimals($price * 0.95);
-	my $max_price = RoundToTwoDecimals($price * 1.05);
-	my $iteration = RoundToTwoDecimals(($max_price - $min_price) / 100);
-	for (my $price = $min_price; $price <= $max_price; $price += $iteration)
-	{
-		$xp = floor($price * 100 + 0.5);
-		$la = floor($last_average * 100 + 0.5);
-		$next_average = floor(($la * 29 + $xp)/30 + 0.5) / 100;
-		my $difference = floor(100*($next_average - $last_average) + 0.5)/100;
-		my $critical = 0;
-		if ($difference > 0.2) { $critical = 1; }
-		if ($difference < -0.2) { $critical = 1; }
-		if ($difference < 1.0 && $difference > 0.2) { $critical = 0.5; }
-		if ($difference > -1.0 && $difference < -0.2) { $critical = 0.5; }
+	return $rating;
+}
 
-		if ($critical == 0 && $price > $next_average * 0.9) { $rating = 'Soft Sell'; }
-		if ($critical == 0 && $price > $next_average * 1.11) { $rating = 'Peak Sell'; }
-		if ($critical == 0.5 && $price > $next_average * 1.2) { $rating = 'Spiking Sell'; }
-		if ($critical == 0.5 && $next_average * 0.75 > $price) { $rating = 'Dropping Buy'; }
-		if ($critical == 0 && $next_average * 0.85 > $price) { $rating = 'Valley Buy'; }
-
-		if ($bcrit == 0 && $critical == 0)
-		{
-			$bcrit = RoundToTwoDecimals($price);
-			$advice = $rating;
-		}
-		if ($critical == 0)
-		{
-			$ecrit = RoundToTwoDecimals($price);
-		}
-		$rating = $hold_messages[$luck];
-	}
-
-	if ($bcrit != 0 && $ecrit != $bcrit)
-	{
-		$advice .= ": $bcrit - $ecrit";
-	}
-	return $advice;
+sub rangeFinder
+{
+#	#TODO: I didn't like what this did during periods of relative stability
+#	my $advice = shift;
+#	my $baseline_rating = $advice;
+#	my $min_price = RoundToTwoDecimals($next_average * 0.95);
+#	my $max_price = RoundToTwoDecimals($next_average * 1.05);
+#	my $iteration = RoundToTwoDecimals(($max_price - $min_price) / 100);
+#	for (my $price = $min_price; $price <= $max_price; $price += $iteration)
+#	{
+#		$xp = floor($price * 100 + 0.5);
+#		$la = floor($last_average * 100 + 0.5);
+#		$next_average = floor(($la * 29 + $xp)/30 + 0.5) / 100;
+#		my $difference = floor(100*($next_average - $last_average) + 0.5)/100;
+#		my $critical = 0;
+#		if ($difference > 0.2) { $critical = 1; }
+#		if ($difference < -0.2) { $critical = 1; }
+#		if ($difference < 1.0 && $difference > 0.2) { $critical = 0.5; }
+#		if ($difference > -1.0 && $difference < -0.2) { $critical = 0.5; }
+#
+#		if ($critical == 0 && $price > $next_average * 0.9) { $rating = 'Soft Sell'; }
+#		if ($critical == 0 && $price > $next_average * 1.11) { $rating = 'Peak Sell'; }
+#		if ($critical == 0.5 && $price > $next_average * 1.2) { $rating = 'Spiking Sell'; }
+#		if ($critical == 0.5 && $next_average * 0.75 > $price) { $rating = 'Dropping Buy'; }
+#		if ($critical == 0 && $next_average * 0.85 > $price) { $rating = 'Valley Buy'; }
+#
+#		if ($bcrit == 0 && $critical == 0)
+#		{
+#			$bcrit = RoundToTwoDecimals($price);
+#			$advice = $rating;
+#		}
+#		if ($critical == 0)
+#		{
+#			$ecrit = RoundToTwoDecimals($price);
+#		}
+#		$rating = $hold_messages[$luck];
+#	}
+#
+#	if ($bcrit != 0 && $ecrit != $bcrit)
+#	{
+#		$advice .= ": $bcrit - $ecrit";
+#	}
+#	return $advice;
 }
 
 sub PostBitcoinRating
