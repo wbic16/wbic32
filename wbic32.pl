@@ -4,6 +4,7 @@ use warnings;
 use Net::Twitter;
 use Scalar::Util 'blessed';
 use POSIX;
+use Time::Piece;
 use File::Slurp;
 use LWP::Simple;
 use Config::Simple;
@@ -56,17 +57,29 @@ sub LoadBitcoinPriceData
 {
 	our %parms;
 	my $date = shift;
-	my $price = $parms{'last_price'};
-	my $btc_date = $parms{'last_checked'};	
+	my $starting_date = $parms{'last_checked'};
 
-	# TODO: Implement comparison to today's date
 	say "Looking up new values...";
 	my $data = GetBitcoinAverageHash();
-	$price = $data->{'24h_avg'};
-	if (IsActive())
+	my $btc_date = $data->{'timestamp'};
+	my $price = $data->{'24h_avg'};
+	
+	my $format = '%a, %d %b %Y %H:%M:%S -0000';
+	my $start = Time::Piece->strptime($starting_date, $format);
+	my $end = Time::Piece->strptime($btc_date, $format);
+	my $date_difference = $end - $start;
+	if ($date_difference < 72000 || $date_difference > 98000)
 	{
-		$btc_date = $data->{'timestamp'};
-		$config->param("last_price", $price);
+		say "You need to update last_checked to be within the last day.";
+		$mode = 'dry-run';
+	}
+	else
+	{
+		# TODO: Use $date_difference to adjust averaging correctly
+		if (IsActive())
+		{		
+			$config->param("last_price", $price);
+		}
 	}
 	# Hack to keep quotes
 	$config->param("last_checked", "\"" . $btc_date . "\"");
@@ -120,7 +133,7 @@ sub GetBitcoinPriceRating
 	if ($difference < -0.2) { $critical = 1; }
 	if ($difference > 1.0) { $critical = 0.5; }
 	if ($difference < -1.0) { $critical = 0.5; }
-	if ($critical == 0 && $price > $next_average * 0.9) { $rating = 'Soft Sell'; }
+	if ($critical == 0 && $price > $next_average * 1.05) { $rating = 'Soft Sell'; }
 	if ($critical == 0 && $price > $next_average * 1.11) { $rating = 'Peak Sell'; }
 	if ($critical == 0.5 && $price > $next_average * 1.25) { $rating = 'Spiking Sell'; }
 	if ($critical == 0.5 && $next_average * 0.75 > $price) { $rating = 'Dropping Buy'; }
