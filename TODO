@@ -1,3 +1,6 @@
+* Add other EMA comparisons to watch for critical points
+** Integrate with range finding
+* Integrate a range-checker for buy/sell advice regions
 * ERROR checking!!!
 * test against random periods in Bitcoin's history vs DCA
 ** adjust accordingly

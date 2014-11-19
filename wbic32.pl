@@ -110,17 +110,28 @@ sub RoundToTwoDecimals
 	return floor(100 * $value + 0.5) / 100;
 }
 
+sub CalculateNextEMA
+{
+	my $last_average = shift;
+	my $price = shift;
+	my $days = shift;
+	my $denominator = floor($days / 2);
+	my $factor = $denominator - 1;
+
+	my $ema = RoundToTwoDecimals(($last_average * $factor + $price) / $denominator);
+	say "Next EMA: $ema";
+	return $ema;
+}
+
 sub GetBitcoinPriceRating
 {
 	my @hold_messages = ('Ho Ho Ho Hold!', 'HODLing like a boss', 'Just keep keep holding, just keep holding ... what do we do we HODL!');
 	my $luck = int(rand(3));
 	my $rating = $hold_messages[$luck];
 	my $price = GetBitcoinAveragePrice();
-	#my $last_price = $parms{'last_price'};
-	my $last_average = $parms{'last_average'};
-	my $xp = floor($price * 100 + 0.5);
-	my $la = floor($last_average * 100 + 0.5);
-	my $next_average = floor(($la * 29 + $xp)/30 + 0.5) / 100;
+	my $last_average = $parms{'last_average'};	
+	my $next_average = CalculateNextEMA($last_average, $price, 60);
+
 	if (IsActive())
 	{
 		$config->param("last_average", $next_average);
