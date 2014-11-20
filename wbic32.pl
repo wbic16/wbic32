@@ -1,3 +1,8 @@
+#=========================================================================
+# @wbic32 Twitter Manager
+# (c) 2013-2014 Will Bickford
+# License: CC BY-SA 4.0 (http://creativecommons.org/licenses/by-sa/4.0/)
+#=========================================================================
 use strict;
 use warnings;
 
@@ -140,6 +145,7 @@ sub GetBitcoinPriceRating
 	my $difference = floor(100*($next_average - $last_average) + 0.5)/100;
 	say "Difference: $difference";
 	my $critical = 0;
+	# TODO: revamp the critical test - this logic seems bogus
 	if ($difference > 0.2) { $critical = 1; }
 	if ($difference < -0.2) { $critical = 1; }
 	if ($difference > 1.0) { $critical = 0.5; }
@@ -149,6 +155,7 @@ sub GetBitcoinPriceRating
 	if ($critical == 0.5 && $price > $next_average * 1.25) { $rating = 'Spiking Sell'; }
 	if ($critical == 0.5 && $next_average * 0.75 > $price) { $rating = 'Dropping Buy'; }
 	if ($critical == 0 && $next_average * 0.95 > $price) { $rating = 'Valley Buy'; }
+	say "Critical: $critical";
 
 	return $rating;
 }
