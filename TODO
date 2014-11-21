@@ -1,3 +1,6 @@
+* Implement Percentage-Based Buy and Sell Advice
+** 2% increments
+** nice images to go with it
 * Add other EMA comparisons to watch for critical points
 ** Integrate with range finding
 * Integrate a range-checker for buy/sell advice regions
