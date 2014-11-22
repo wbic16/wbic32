@@ -50,12 +50,29 @@ sub Main
 {
 	my $date = strftime "%A, %B %d, %Y", localtime;
 
+	GiftRandomFollower();
 	LoadBitcoinPriceData($date);
 	PostBitcoinRating($date, GetBitcoinPriceRating());
 	
-	$config->write($config_file);
+	if (IsActive())
+	{
+		$config->write($config_file);
+	}
 
 	return 0;
+}
+
+sub GiftRandomFollower
+{
+	my @followers = GatherFollowers();
+   my $pick = int(rand($#followers));
+	my $amount = int(rand(1000)) + 50;
+	my $message = "Today\'s Lucky Follower \@" . $followers[$pick] . " gets $amount bits! \@changetip";
+	say $message;
+	if (IsActive())
+	{
+		PostToTimeline($message);
+	}
 }
 
 sub LoadBitcoinPriceData
@@ -192,13 +209,18 @@ sub GetCriticalRating
 sub GetRandomHoldMessage
 {
 	my @hold_messages = (
-		'Ho Ho Ho Hold!',
-	  	'HODLing like a boss',
-	  	'Just keep keep holding, just keep holding ... what do we do we HODL!',
-		'What are you doing, #Bitcoiner? I can\'t help you right now. (HODL)',
-		'History will record this day as just another day. (HODL)',
-		'HODL me baby, one more time.',
-		'I am required to issue a hold rating by my benevolent overlord.'
+		'Ho Ho Ho Hold! #HODL',
+	  	'#HODLing like a boss',
+	  	'Just keep keep holding, just keep holding ... what do we do we #HODL!',
+		'What are you doing, #Bitcoiner? I can\'t help you right now. #HODL',
+		'History will record this day as just another day. #HODL',
+		'#HODL me baby, one more time.',
+		'I am required to issue a #HODL rating by my benevolent overlord.',
+		'A Bitcoin saved today is a Bitcoin earned tomorrow: #HODL',
+		'Algorithm survey says: Try Again. Algorithm survey says: #HODL',
+		'Hold the line folks. #HODL',
+		'I\'m bored, let\'s memorize some digits of pi. 3.14159265358979 #HODL',
+		'You can submit your own #HODL ideas by replying. #HODL'
 	);
 	my $list_size = $#hold_messages;
 	my $luck = int(rand($list_size));
@@ -258,6 +280,40 @@ sub PostBitcoinRating
 	{
 		PostToTimeline($message);
 	}
+}
+
+sub GatherFollowers
+{
+	# TODO: Read this from the config file
+	# TODO: update this list periodically (once a week)
+	# Never cache wbic16 or 'fake accounts'
+	#my $wb32 = getLoginFor('wbic32');
+	#Dumper($wb32->followers->{'users'});
+	
+	my @followers = (
+		'4vrblonde',
+		'sctandogdu',
+		'iamultimate',
+		'JanelleCowie',
+		'JohnLehneis',
+		'jdsmithies',
+		'Sir_Lebowski',
+		'baldockandy',
+		'devlspawn',
+		'mahrteen',
+		'TeloOfficial',
+		'riaanjutte',
+		'riprowan',
+		'Voittoe',
+		'Gabrolaz',
+		'bizmar',
+		'LTCInformation',
+		'darinarrick',
+		'VBeast_net',
+		'futuredrac'
+	);
+	$config->param("followers", \@followers);
+	return @followers;
 }
 
 sub GatherData
