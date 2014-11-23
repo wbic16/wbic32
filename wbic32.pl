@@ -284,36 +284,19 @@ sub PostBitcoinRating
 
 sub GatherFollowers
 {
-	# TODO: Read this from the config file
-	# TODO: update this list periodically (once a week)
-	# Never cache wbic16 or 'fake accounts'
+	# TODO: Fix my illiteracy with perl data structures and Data::Dumper output
+	# TODO: Never cache wbic16 or 'fake accounts'
 	#my $wb32 = getLoginFor('wbic32');
-	#Dumper($wb32->followers->{'users'});
+	#foreach my $users ($wb32->followers->{'users'})
+	#{
+	#	say "====----====";
+	#	say Dumper($users);
+	#	say "----====----";
+	#}
 	
-	my @followers = (
-		'4vrblonde',
-		'sctandogdu',
-		'iamultimate',
-		'JanelleCowie',
-		'JohnLehneis',
-		'jdsmithies',
-		'Sir_Lebowski',
-		'baldockandy',
-		'devlspawn',
-		'mahrteen',
-		'TeloOfficial',
-		'riaanjutte',
-		'riprowan',
-		'Voittoe',
-		'Gabrolaz',
-		'bizmar',
-		'LTCInformation',
-		'darinarrick',
-		'VBeast_net',
-		'futuredrac'
-	);
-	$config->param("followers", \@followers);
-	return @followers;
+	# $config->param("followers", \@followers);
+	my $followers = $parms{'followers'};
+	return @$followers;
 }
 
 sub GatherData
