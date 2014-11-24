@@ -62,15 +62,35 @@ sub Main
 	return 0;
 }
 
+sub GetWinners
+{
+	my $winners = $parms{'winners'};
+	return @$winners;
+}
+
 sub GiftRandomFollower
 {
 	my @followers = GatherFollowers();
-   my $pick = int(rand($#followers));
+	my @possible_winners;
+	my @winner_list = GetWinners();
+	my %winners = map { $_ => 1 } @winner_list;
+	foreach my $follower (@followers)
+	{
+		if (!exists($winners{$follower}))
+		{
+			push (@possible_winners, $follower);
+		}
+	}
+
+   my $pick = int(rand($#possible_winners));
 	my $amount = int(rand(1000)) + 50;
-	my $message = "Today\'s Lucky Follower \@" . $followers[$pick] . " gets $amount bits! \@changetip";
+	my $winner = $possible_winners[$pick];
+	my $message = "Today\'s Lucky Follower \@" . $winner . " gets $amount bits! \@changetip";
 	say $message;
 	if (IsActive())
 	{
+		push(@winner_list, $winner);
+		$config->param("winners", \@winner_list);
 		PostToTimeline($message);
 	}
 }
@@ -160,10 +180,11 @@ sub GetBitcoinPriceRating
 		$config->param("last_average", $next_average);
 	}
 	say "Average: $next_average";
-	my $critical = GetCriticalRating($price, $last_average, $next_average);
+	my $critical = GetCriticalRating($price, $last_average, $next_average, 1);
 	$rating = GetPriceRating($price, $next_average, $critical, $rating);
 
-	my $advice = rangeFinder($rating, $next_average, $last_average, 0.95, 1.05, $rating);
+	# TODO: Publish this once it improves and @wbic16 has posted the blog article
+	my $advice = rangeFinder($rating, $next_average, $last_average, 0.8, 1.2, $rating);
 	say "Advice: $advice";
 
 	return $rating;
@@ -190,8 +211,13 @@ sub GetCriticalRating
 	my $price = shift;
 	my $previousEma = shift;
 	my $ema = shift;
+	my $show = shift;
 
 	my $difference = RoundToTwoDecimals($ema - $previousEma);
+	if ($show)
+	{
+		say "Difference: $difference"
+	}
 
 	my $critical = 1;
 	if (abs($difference) < 0.2)
@@ -247,7 +273,7 @@ sub rangeFinder
 	{
 		$next_average = CalculateNextEMA($last_average, $price, 60);
 
-		my $critical = GetCriticalRating($price, $last_average, $next_average);
+		my $critical = GetCriticalRating($price, $last_average, $next_average, 0);
 		$rating = GetPriceRating($price, $next_average, $critical, $rating);
 
 		if ($first_critical_value == 0 && $critical == 0)
