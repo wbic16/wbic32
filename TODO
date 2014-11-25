@@ -1,9 +1,9 @@
+* Setup a module with nice organization
 * Implement Percentage-Based Buy and Sell Advice
 ** 2% increments
 ** nice images to go with it
-* Add other EMA comparisons to watch for critical points
-** Integrate with range finding
 * Integrate a range-checker for buy/sell advice regions
+* Integrate 5-day EMA with rating and range finding
 * ERROR checking!!!
 * test against random periods in Bitcoin's history vs DCA
 ** adjust accordingly

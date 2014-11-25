@@ -168,12 +168,34 @@ sub CalculateNextEMA
 	return $ema;
 }
 
+sub WatchEMA
+{
+	my $prefix = shift;
+	my $days = shift;
+	my $price = shift;
+
+	my $key = "${prefix}_day_ema";
+	my $ema = $parms{$key};
+	my $next_ema = CalculateNextEMA($ema, $price, $days);
+	my $difference = RoundToTwoDecimals($next_ema - $ema);
+	say "${days}-Day: $next_ema ($difference)";
+
+	if (IsActive())
+	{
+		$config->param($key, $next_ema);
+	}
+}
+
 sub GetBitcoinPriceRating
 {
 	my $rating = GetRandomHoldMessage();
 	my $price = GetBitcoinAveragePrice();
 	my $last_average = $parms{'last_average'};	
 	my $next_average = CalculateNextEMA($last_average, $price, 60);
+
+		# TODO: Do more than watch the 5 and 10-day EMAs
+	WatchEMA('five', 5, $price);
+	WatchEMA('ten', 10, $price);
 
 	if (IsActive())
 	{
@@ -323,80 +345,6 @@ sub GatherFollowers
 	# $config->param("followers", \@followers);
 	my $followers = $parms{'followers'};
 	return @$followers;
-}
-
-sub GatherData
-{
-	my %terms;
-	my $best1;
-	my $best2;
-	my $best3;
-
-	my $wb = getLoginFor('wbic16');
-	my $statuses = $wb->home_timeline({ count => 200 });
-	for my $status (@$statuses)
-	{
-		my $cleanString = $status->{text};
-		my @tmp = split(' ', $cleanString);
-		for my $t (@tmp)
-		{
-			if (length($t) > 0)
-			{
-				if (length($t) > length($best1))
-				{
-					$best3 = $best2;
-					$best2 = $best1;
-					$best1 = $t;
-				}
-				if (! exists $terms{$t})
-				{
-					$terms{$t} = 1;
-				}
-				else
-				{
-					$terms{$t} = $terms{$t} + 1;
-				}
-			}
-		}
-	}
-
-	my @unique = keys %terms;
-	my @top;
-
-	for my $r (@unique)
-	{
-		$top[$terms{$r}] = $r;
-	}
-
-	my $message = $top[0] . ' ' . $best1 . ' ' . $top[1] . ' ' . $top[2] . ' ' . $best3;
-	my $top_size = scalar @top;
-	for (my $i = 3; $i < $top_size; ++$i)
-	{
-		$message .= ' ' . $top[$i];
-	}
-	for my $r (@unique)
-	{
-		$message .= ' ' . $r;
-	}
-	my @cleanup = split(' ', $message);
-	$message = '';
-	for my $c (@cleanup)
-	{
-		my $temp = $message . ' ' . $c;
-		if (length($temp) >= 140) {
-			last;
-		}
-		$message = $temp;
-	}
-	$message =~ s/^\s*//g;
-	$message = substr $message, 0, 140;
-
-	print "\n-----------------------------------\n";
-	print "Message: $message\n";
-	print "Length: " . length($message);
-	print "\n-----------------------------------\n";
-
-	return $message;
 }
 
 sub PostToTimeline
