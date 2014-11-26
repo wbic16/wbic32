@@ -57,6 +57,7 @@ sub Main
 	if (IsActive())
 	{
 		$config->write($config_file);
+		say "Config Saved: ${config_file}...";
 	}
 
 	return 0;
@@ -71,7 +72,7 @@ sub GetWinners
 sub GiftRandomFollower
 {
 	my @followers = GatherFollowers();
-	my @possible_winners;
+	my @possible_winners = ();
 	my @winner_list = GetWinners();
 	my %winners = map { $_ => 1 } @winner_list;
 	foreach my $follower (@followers)
@@ -80,6 +81,10 @@ sub GiftRandomFollower
 		{
 			push (@possible_winners, $follower);
 		}
+	}
+	if ($#possible_winners == -1)
+	{
+		@possible_winners = @followers;
 	}
 
    my $pick = int(rand($#possible_winners));
