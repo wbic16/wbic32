@@ -1,11 +1,32 @@
-#=========================================================================
+#=============================================================================================================
 # @wbic32 Twitter Manager
 # (c) 2013-2014 Will Bickford
 # License: CC BY-SA 4.0 (http://creativecommons.org/licenses/by-sa/4.0/)
-#=========================================================================
+#=============================================================================================================
+# Here's a text-plot of what # we're trying to do with EMA analysis. The points marked with a '-' are non-
+# trading days. The points marked with a '+' are trading days.
+#                                                   -
+#                                                   -
+#                                                   -
+#                                                   -
+#                                                   -
+#                     -++-  -+-                     -
+#                    -    --   ----                -
+#         +         -              -----          -
+#       -- ---     -                    -----   --
+#     --      -   -                          -+-
+# -++-         -+-
+#
+# Notice how we trigger buys and sells at _critical points in the price curve. If the price is rising or
+# falling too quickly, we avoid trading because it is almost impossible to catch a falling knife or predict
+# when a price spike will end.
+#=============================================================================================================
+
+# ------------------------------------------------------------------------------------------------------------
+# Language features and packages
+# ------------------------------------------------------------------------------------------------------------
 use strict;
 use warnings;
-
 use Net::Twitter;
 use Scalar::Util 'blessed';
 use POSIX;
@@ -17,37 +38,62 @@ use File::Touch;
 use JSON;
 use Data::Dumper;
 use feature qw(say);
-
 require 'login_credentials.inc';
 
+# ------------------------------------------------------------------------------------------------------------
+# Module Configuration
+# ------------------------------------------------------------------------------------------------------------
+# Change the values here to adjust behavior
+#
 my $mode = 'Active';
-my $arg = shift;
-if (defined $arg)
-{
-	if ($arg eq 'dry-run')
-	{
-		$mode = 'Dry-Run';
-	}
-}
-
-say "Running Mode: $mode";
-
 our $config_file = 'willbot.config';
+my $version = '0.1.0.1';
+
+# ------------------------------------------------------------------------------------------------------------
+# Kickstart
+# ------------------------------------------------------------------------------------------------------------
+my $arg = shift;
+if (!defined $arg) { $arg = $mode; }
 our $config = new Config::Simple($config_file);
 if ($config == 0)
 {
 	$config = new Config::Simple(syntax=>'simple');
 }
 our %parms = $config->vars();
-exit(Main());
+exit(Main($arg));
 
+# ------------------------------------------------------------------------------------------------------------
+# IsActive
+# ------------------------------------------------------------------------------------------------------------
+# Returns 1 if our current mode is active. Returns '' otherwise.
+#
 sub IsActive
 {
 	return $mode eq 'Active';
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# Main
+# ------------------------------------------------------------------------------------------------------------
+# $command : the run-time command to pass {'' or 'dry-run' so far}
+# ------------------------------------------------------------------------------------------------------------
+# Handles high-level behavior for the bot. Currently this consists of gifting a random follower and posting
+# a bitcoin price rating. Also writes config changes to disk if we're not in the dry-run mode.
+#
 sub Main
 {
+	my $command = shift;
+	if ($command eq 'dry-run')
+	{
+		$mode = 'Dry-Run';
+	}
+
+	say "==================================";
+	say "Willbot Bitcoin Price Detector Bot";
+	say "==================================";
+	say "Running Mode: $mode";
+	say "Version: $version";
+
 	my $date = strftime "%A, %B %d, %Y", localtime;
 
 	GiftRandomFollower();
@@ -63,12 +109,24 @@ sub Main
 	return 0;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GetWinners
+# ------------------------------------------------------------------------------------------------------------
+# Fetches the list of winners from the config file.
+#
 sub GetWinners
 {
 	my $winners = $parms{'winners'};
 	return @$winners;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GiftRandomFollower
+# ------------------------------------------------------------------------------------------------------------
+# Compares the set of followers to the set of winners and draws a new winner from the set of followers who
+# have not won yet. If the sets are equal, then it starts over with everyone having a chance again. This
+# method should probably be broken up and/or simplified with some module I don't know about.
+#
 sub GiftRandomFollower
 {
 	my @followers = GatherFollowers();
@@ -88,7 +146,7 @@ sub GiftRandomFollower
 	}
 
    my $pick = int(rand($#possible_winners));
-	my $amount = int(rand(1000)) + 50;
+	my $amount = int(rand(4500)) + 500;
 	my $winner = $possible_winners[$pick];
 	my $message = "Today\'s Lucky Follower \@" . $winner . " gets $amount bits! \@changetip";
 	say $message;
@@ -100,6 +158,13 @@ sub GiftRandomFollower
 	}
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# LoadBitcoinPriceData
+# ------------------------------------------------------------------------------------------------------------
+# $date : the date to compare the price data to, typically today's current date
+# ------------------------------------------------------------------------------------------------------------
+# Loads the 24-hour Bitcoin price rating from our data source, prints the average and updates the config file.
+#
 sub LoadBitcoinPriceData
 {
 	our %parms;
@@ -110,6 +175,11 @@ sub LoadBitcoinPriceData
 	my $data = GetBitcoinAverageHash();
 	my $btc_date = $data->{'timestamp'};
 	my $price = $data->{'24h_avg'};
+	if (! defined $price)
+	{
+		say "Error loading 24h_avg price data.";
+		exit;
+	}
 	
 	my $format = '%a, %d %b %Y %H:%M:%S -0000';
 	my $start = Time::Piece->strptime($starting_date, $format);
@@ -139,6 +209,11 @@ sub LoadBitcoinPriceData
 	say "Last Price: " . $price;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GetBitcoinAverageHash
+# ------------------------------------------------------------------------------------------------------------
+# Returns the json content from bitcoinaverage.com as a hash.  Single-point of failure for price prediction.
+#
 sub GetBitcoinAverageHash
 {
 	my $url = "https://api.bitcoinaverage.com/ticker/USD/";
@@ -146,6 +221,11 @@ sub GetBitcoinAverageHash
 	return decode_json $content;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GetBitcoinAveragePrice
+# ------------------------------------------------------------------------------------------------------------
+# Decodes the json content provided by GetBitcoinAverageHash and returns the 24-hour average price.
+#
 sub GetBitcoinAveragePrice
 {
 	my $key = '24h_avg';
@@ -155,12 +235,28 @@ sub GetBitcoinAveragePrice
 	return $price;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# RoundToTwoDecimals
+# ------------------------------------------------------------------------------------------------------------
+# $value : the number to round
+# ------------------------------------------------------------------------------------------------------------
+# Simple integer rounding without any external modules. Only works for positive values?
+#
 sub RoundToTwoDecimals
 {
 	my $value = shift;
 	return floor(100 * $value + 0.5) / 100;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# CalculateNextEMA
+# ------------------------------------------------------------------------------------------------------------
+# $last_average : yesterday's EMA to use as a baseline (use a simple average to get started)
+# $price        : today's 24-hour average price
+# $days         : number of days to consider for the EMA
+# ------------------------------------------------------------------------------------------------------------
+# Re-calculates the smoothed exponential moving average for a given number of days.
+#
 sub CalculateNextEMA
 {
 	my $last_average = shift;
@@ -173,11 +269,23 @@ sub CalculateNextEMA
 	return $ema;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# WatchEMA
+# ------------------------------------------------------------------------------------------------------------
+# $prefix             : string prefix for the config file (i.e. 'five', 'ten')
+# $days               : numeric number of days for the EMA to watch
+# $price              : today's 24-hour average price
+# $primary_difference : today's primary EMA difference
+# ------------------------------------------------------------------------------------------------------------
+# I'm using this to watch the 5-day and 10-day EMAs to see if there are correlations in critical points on
+# trading days. I hope to improve the quality of my critical point detection by watching them.
+#
 sub WatchEMA
 {
 	my $prefix = shift;
 	my $days = shift;
 	my $price = shift;
+	my $primary_difference = shift;
 
 	my $key = "${prefix}_day_ema";
 	my $ema = $parms{$key};
@@ -185,22 +293,36 @@ sub WatchEMA
 	my $difference = RoundToTwoDecimals($next_ema - $ema);
 	say "${days}-Day: $next_ema ($difference)";
 
+	my $critical = ($difference < 0 && $primary_difference > 0) ||
+	               ($difference > 0 && $primary_difference < 0);
+	if ($critical)
+	{
+		say "Interesting data point";
+	}
+
 	if (IsActive())
 	{
 		$config->param($key, $next_ema);
 	}
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GetBitcoinPriceRating
+# ------------------------------------------------------------------------------------------------------------
+# Calculates today's rating and advice. Advice is only printed to the screen for the moment.
+# Returns today's price rating (text format).
+#
 sub GetBitcoinPriceRating
 {
 	my $rating = GetRandomHoldMessage();
 	my $price = GetBitcoinAveragePrice();
 	my $last_average = $parms{'last_average'};	
 	my $next_average = CalculateNextEMA($last_average, $price, 60);
+	my $difference = RoundToTwoDecimals($next_average - $last_average);
 
-		# TODO: Do more than watch the 5 and 10-day EMAs
-	WatchEMA('five', 5, $price);
-	WatchEMA('ten', 10, $price);
+	# TODO: Do more than watch the 5 and 10-day EMAs?
+	WatchEMA('five', 5, $price, $difference);
+	WatchEMA('ten', 10, $price, $difference);
 
 	if (IsActive())
 	{
@@ -217,6 +339,20 @@ sub GetBitcoinPriceRating
 	return $rating;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GetPriceRating
+# ------------------------------------------------------------------------------------------------------------
+# $price    : today's 24-hour average price
+# $ema      : today's 60-day smoothed EMA
+# $critical : critical point indicator { 0 = not critical, 0.5 = somewhat, 1.0 = definitely }
+# $rating   : the baseline #HODL message
+# ------------------------------------------------------------------------------------------------------------
+# Compares today's price to today's EMA and issues buy or sell advice. Not very well designed atm. Needs work.
+#
+# TODO:
+# * Provide a range of 1% to 10% long-term holdings buy or sell advice
+# * Certainty of sell or buy corresponds to how much we advise trading on a given day
+#
 sub GetPriceRating
 {
 	my $price = shift;
@@ -233,6 +369,27 @@ sub GetPriceRating
 	return $rating;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GetCriticalRating
+# ------------------------------------------------------------------------------------------------------------
+# $price       : today's 24-hour average price
+# $previousEma : yesterday's primary EMA
+# $ema         : today's primary EMA
+# $show        : print suppression (used when calling this from a loop)
+# ------------------------------------------------------------------------------------------------------------
+# Compares yesterday's EMA to today's and marks the difference critical as follows. This isn't a scalable
+# method. Needs to be re-worked to scale with the price.
+#
+# If the values differ by...
+# 0.0 : $1/BTC or more
+# 0.5 : $0.20/BTC to $1.00/BTC
+# 1.0 : $0.20/BTC to $0.00/BTC
+#
+# TODO:
+# * Use more than 1 day of history to avoid 1-day price gaming
+# * Adjust the critical ranges with the price
+# * Make the critical rating continuous (affects GetPriceRating)
+#
 sub GetCriticalRating
 {
 	my $price = shift;
@@ -259,6 +416,12 @@ sub GetCriticalRating
 	return $critical;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GetRandomHoldMessage
+# ------------------------------------------------------------------------------------------------------------
+# Holds a list of potential #HODL messages to reduce boredom. Currently, I'm targeting 85-90% of days as hold
+# advice days, so this helps keep followers engaged. Needs moar ratings!
+#
 sub GetRandomHoldMessage
 {
 	my @hold_messages = (
@@ -273,7 +436,8 @@ sub GetRandomHoldMessage
 		'Algorithm survey says: Try Again. Algorithm survey says: #HODL',
 		'Hold the line folks. #HODL',
 		'I\'m bored, let\'s memorize some digits of pi. 3.14159265358979 #HODL',
-		'You can submit your own #HODL ideas by replying. #HODL'
+		'Tip: You can submit your own #HODL ideas by replying. #HODL',
+		'Take a look at #linktrace while you #HODL today.'
 	);
 	my $list_size = $#hold_messages;
 	my $luck = int(rand($list_size));
@@ -281,6 +445,21 @@ sub GetRandomHoldMessage
 	return $hold_messages[$luck];
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# rangeFinder
+# ------------------------------------------------------------------------------------------------------------
+# $advice       : baseline advice
+# $next_average : today's EMA
+# $last_average : yesterday's EMA
+# $lower_bound  : lowest expected price today
+# $upper_bound  : highest expected price today
+# $rating       : baseline rating
+# ------------------------------------------------------------------------------------------------------------
+# Iterates over the range specified by the bound arguments in 100 steps. Looks for conditions that would cause
+# our trading advice to change. Due to the nature of the critical point detection, we'll only ever have one
+# range, if any. If a range is found, this method returns the revised advice and the price range that
+# generated it. I'm not using this yet because I need to write a blog post explaining how to utilize it.
+#
 sub rangeFinder
 {
 	my $advice = shift;
@@ -322,6 +501,14 @@ sub rangeFinder
 	return $advice;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# PostBitcoinRating
+# ------------------------------------------------------------------------------------------------------------
+# $date   : the date to report, usually today's date
+# $rating : the rating to post
+# ------------------------------------------------------------------------------------------------------------
+# Constructs our price rating tweet and posts it to twitter if we're in the active mode.
+#
 sub PostBitcoinRating
 {
 	my $date = shift;
@@ -335,6 +522,12 @@ sub PostBitcoinRating
 	}
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GatherFollowers
+# ------------------------------------------------------------------------------------------------------------
+# STUB: Needs to scan my twitter followers and update the follower list dynamically. I've been managing it by
+# hand so far.
+#
 sub GatherFollowers
 {
 	# TODO: Fix my illiteracy with perl data structures and Data::Dumper output
@@ -352,6 +545,13 @@ sub GatherFollowers
 	return @$followers;
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# PostToTimeline
+# ------------------------------------------------------------------------------------------------------------
+# $message : the message to post
+# ------------------------------------------------------------------------------------------------------------
+# Wrapper for posting messages as @wbic32 on twitter.
+#
 sub PostToTimeline
 {
 	my $message = shift;
@@ -367,6 +567,16 @@ sub PostToTimeline
 	}
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# login
+# ------------------------------------------------------------------------------------------------------------
+# $consumer_key    : OAuth consumer key
+# $consumer_secret : OAuth consumer secret
+# $token           : OAuth access token
+# $token_secret    : OAuth access token secret
+# ------------------------------------------------------------------------------------------------------------
+# See http://search.cpan.org/dist/Net-Twitter/lib/Net/Twitter.pod for more information.
+#
 sub login
 {
 	my $consumer_key = shift;
