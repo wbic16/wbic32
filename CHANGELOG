@@ -1,0 +1,12 @@
+0.1.0.2
+=======
+* #001: Corrected a Repeated Word in #HODL Advice
+
+Version 0.1.0.1
+===============
+
+* First Release
+** Tips a random follower an average of 2750 bits per day
+**  Watches the 24-hour Bitcoin price using https://api.bitcoinaverage.com/ticker/USD/
+**  Calculates the 5-day, 10-day and 30-day smoothed EMA
+**  Posts witty trading advice for the current day

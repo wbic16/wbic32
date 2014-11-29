@@ -427,7 +427,7 @@ sub GetRandomHoldMessage
 	my @hold_messages = (
 		'Ho Ho Ho Hold! #HODL',
 	  	'#HODLing like a boss',
-	  	'Just keep keep holding, just keep holding ... what do we do we #HODL!',
+	  	'Just keep holding, just keep holding ... what do we do we #HODL!',
 		'What are you doing, #Bitcoiner? I can\'t help you right now. #HODL',
 		'History will record this day as just another day. #HODL',
 		'#HODL me baby, one more time.',
