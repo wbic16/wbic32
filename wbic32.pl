@@ -146,9 +146,9 @@ sub GiftRandomFollower
 	}
 
    my $pick = int(rand($#possible_winners));
-	my $amount = int(rand(4500)) + 500;
+	my $amount = int(rand(15)) + 5;
 	my $winner = $possible_winners[$pick];
-	my $message = "Today\'s Lucky Follower \@" . $winner . " gets $amount bits! \@changetip";
+	my $message = "Today\'s Lucky Follower \@" . $winner . " gets $amount curseofbitcoin! \@changetip";
 	say $message;
 	if (IsActive())
 	{
