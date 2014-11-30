@@ -1,7 +1,7 @@
-* Setup a module with nice organization
 * Implement Percentage-Based Buy and Sell Advice
 ** 2% increments
 ** nice images to go with it
+* Setup a module with nice organization
 * Integrate a range-checker for buy/sell advice regions
 * Integrate 5-day and 10-day EMA with rating and range finding
 * ERROR checking!!!
