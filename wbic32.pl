@@ -121,13 +121,12 @@ sub GetWinners
 }
 
 # ------------------------------------------------------------------------------------------------------------
-# GiftRandomFollower
+# PickRandomFollower
 # ------------------------------------------------------------------------------------------------------------
 # Compares the set of followers to the set of winners and draws a new winner from the set of followers who
-# have not won yet. If the sets are equal, then it starts over with everyone having a chance again. This
-# method should probably be broken up and/or simplified with some module I don't know about.
+# have not won yet. If the sets are equal, then it starts over with everyone having a chance again.
 #
-sub GiftRandomFollower
+sub PickRandomFollower
 {
 	my @followers = GatherFollowers();
 	my @possible_winners = ();
@@ -145,8 +144,20 @@ sub GiftRandomFollower
 		@possible_winners = @followers;
 	}
 
-   my $pick = int(rand($#possible_winners));
-	my $amount = int(rand(15)) + 5;
+	return (\@winner_list, \@possible_winners, int(rand($#possible_winners)));
+}
+
+# ------------------------------------------------------------------------------------------------------------
+# GiftRandomFollower
+# ------------------------------------------------------------------------------------------------------------
+# Picks a random follower and then sends a random amount of bitcoin as a thank-you.
+#
+sub GiftRandomFollower
+{
+	my ($winner_list_ref, $possible_winners_ref, $pick) = PickRandomFollower();
+	my @winner_list = @$winner_list_ref;
+	my @possible_winners = @$possible_winners_ref;
+	my $amount = int(rand(15)) + 2.5;
 	my $winner = $possible_winners[$pick];
 	my $message = "Today\'s Lucky Follower \@" . $winner . " gets $amount curseofbitcoin! \@changetip";
 	say $message;
@@ -437,7 +448,8 @@ sub GetRandomHoldMessage
 		'Hold the line folks. #HODL',
 		'I\'m bored, let\'s memorize some digits of pi. 3.14159265358979 #HODL',
 		'Tip: You can submit your own #HODL ideas by replying. #HODL',
-		'Take a look at #linktrace while you #HODL today.'
+		'Take a look at #linktrace while you #HODL today.',
+		'Keep Calm and #HODL On http://www.keepcalm-o-matic.co.uk/p/keep-calm-and-hodl-on/'
 	);
 	my $list_size = $#hold_messages;
 	my $luck = int(rand($list_size));
