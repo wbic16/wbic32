@@ -47,7 +47,7 @@ require 'login_credentials.inc';
 #
 my $mode = 'Active';
 our $config_file = 'willbot.config';
-my $version = '0.1.0.1';
+my $version = '0.1.0.2';
 
 # ------------------------------------------------------------------------------------------------------------
 # Kickstart
@@ -157,7 +157,7 @@ sub GiftRandomFollower
 	my ($winner_list_ref, $possible_winners_ref, $pick) = PickRandomFollower();
 	my @winner_list = @$winner_list_ref;
 	my @possible_winners = @$possible_winners_ref;
-	my $amount = int(rand(15)) + 2.5;
+	my $amount = RoundToTwoDecimals(rand(15)) + 2.5;
 	my $winner = $possible_winners[$pick];
 	my $message = "Today\'s Lucky Follower \@" . $winner . " gets $amount curseofbitcoin! \@changetip";
 	say $message;
@@ -317,6 +317,19 @@ sub WatchEMA
 	}
 }
 
+sub GetEMAInformation
+{
+	my $key = shift;
+	my $price = shift;
+	my $days = shift;
+
+	my $last = $parms{$key};
+	my $next = CalculateNextEMA($last, $price, $days);
+	my $diff = RoundToTwoDecimals($next - $last);
+
+	return ($last, $next, $diff);
+}
+
 # ------------------------------------------------------------------------------------------------------------
 # GetBitcoinPriceRating
 # ------------------------------------------------------------------------------------------------------------
@@ -327,9 +340,15 @@ sub GetBitcoinPriceRating
 {
 	my $rating = GetRandomHoldMessage();
 	my $price = GetBitcoinAveragePrice();
-	my $last_average = $parms{'last_average'};	
-	my $next_average = CalculateNextEMA($last_average, $price, 60);
-	my $difference = RoundToTwoDecimals($next_average - $last_average);
+	
+	my ($last_average, $next_average, $difference) = GetEMAInformation('last_average', $price, 60);
+
+	my %ema_hash = (
+		5  => [ GetEMAInformation('five_day_ema', $price, 5) ],
+		10 => [ GetEMAInformation('ten_day_ema',  $price, 10) ],
+		60 => [ GetEMAInformation('last_average', $price, 60) ]
+	);
+	say Dumper(%ema_hash);
 
 	# TODO: Do more than watch the 5 and 10-day EMAs?
 	WatchEMA('five', 5, $price, $difference);
