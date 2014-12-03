@@ -27,16 +27,17 @@
 # ------------------------------------------------------------------------------------------------------------
 use strict;
 use warnings;
-use Net::Twitter;
-use Scalar::Util 'blessed';
-use POSIX;
-use Time::Piece;
-use File::Slurp;
-use LWP::Simple;
 use Config::Simple;
+use Data::Dumper;
+use File::Slurp;
 use File::Touch;
 use JSON;
-use Data::Dumper;
+use LWP::Simple;
+use Math::Round;
+use Net::Twitter;
+use POSIX;
+use Scalar::Util 'blessed';
+use Time::Piece;
 use feature qw(say);
 require 'login_credentials.inc';
 
@@ -157,7 +158,7 @@ sub GiftRandomFollower
 	my ($winner_list_ref, $possible_winners_ref, $pick) = PickRandomFollower();
 	my @winner_list = @$winner_list_ref;
 	my @possible_winners = @$possible_winners_ref;
-	my $amount = RoundToTwoDecimals(rand(15)) + 2.5;
+	my $amount = nearest(0.01, rand(15)) + 2.5;
 	my $winner = $possible_winners[$pick];
 	my $message = "Today\'s Lucky Follower \@" . $winner . " gets $amount curseofbitcoin! \@changetip";
 	say $message;
@@ -247,19 +248,6 @@ sub GetBitcoinAveragePrice
 }
 
 # ------------------------------------------------------------------------------------------------------------
-# RoundToTwoDecimals
-# ------------------------------------------------------------------------------------------------------------
-# $value : the number to round
-# ------------------------------------------------------------------------------------------------------------
-# Simple integer rounding without any external modules. Only works for positive values?
-#
-sub RoundToTwoDecimals
-{
-	my $value = shift;
-	return floor(100 * $value + 0.5) / 100;
-}
-
-# ------------------------------------------------------------------------------------------------------------
 # CalculateNextEMA
 # ------------------------------------------------------------------------------------------------------------
 # $last_average : yesterday's EMA to use as a baseline (use a simple average to get started)
@@ -276,7 +264,7 @@ sub CalculateNextEMA
 	my $denominator = floor($days / 2);
 	my $factor = $denominator - 1;
 
-	my $ema = RoundToTwoDecimals(($last_average * $factor + $price) / $denominator);
+	my $ema = nearest(0.01, ($last_average * $factor + $price) / $denominator);
 	return $ema;
 }
 
@@ -301,7 +289,7 @@ sub WatchEMA
 	my $key = "${prefix}_day_ema";
 	my $ema = $parms{$key};
 	my $next_ema = CalculateNextEMA($ema, $price, $days);
-	my $difference = RoundToTwoDecimals($next_ema - $ema);
+	my $difference = nearest(0.01, $next_ema - $ema);
 	say "${days}-Day: $next_ema ($difference)";
 
 	my $critical = ($difference < 0 && $primary_difference > 0) ||
@@ -317,6 +305,15 @@ sub WatchEMA
 	}
 }
 
+# ------------------------------------------------------------------------------------------------------------
+# GetEMAInformation
+# ------------------------------------------------------------------------------------------------------------
+# $key   : text key to get yesterday's value from the config file
+# $price : today's price
+# $days  : number of days in the window
+# ------------------------------------------------------------------------------------------------------------
+# I abstracted these three calculations so I could easily repeat them for 5-day and 10-day EMAs.
+#
 sub GetEMAInformation
 {
 	my $key = shift;
@@ -325,7 +322,7 @@ sub GetEMAInformation
 
 	my $last = $parms{$key};
 	my $next = CalculateNextEMA($last, $price, $days);
-	my $diff = RoundToTwoDecimals($next - $last);
+	my $diff = nearest(0.01, $next - $last);
 
 	return ($last, $next, $diff);
 }
@@ -363,7 +360,7 @@ sub GetBitcoinPriceRating
 	$rating = GetPriceRating($price, $next_average, $critical, $rating);
 
 	# TODO: Publish this once it improves and @wbic16 has posted the blog article
-	my $advice = rangeFinder($rating, $next_average, $last_average, 0.8, 1.2, $rating);
+	my $advice = RangeFinder($rating, $next_average, $last_average, 0.5, 2.0, $rating);
 	say "Advice: $advice";
 
 	return $rating;
@@ -427,7 +424,7 @@ sub GetCriticalRating
 	my $ema = shift;
 	my $show = shift;
 
-	my $difference = RoundToTwoDecimals($ema - $previousEma);
+	my $difference = nearest(0.01, $ema - $previousEma);
 	if ($show)
 	{
 		say "Difference: $difference"
@@ -477,7 +474,7 @@ sub GetRandomHoldMessage
 }
 
 # ------------------------------------------------------------------------------------------------------------
-# rangeFinder
+# RangeFinder
 # ------------------------------------------------------------------------------------------------------------
 # $advice       : baseline advice
 # $next_average : today's EMA
@@ -491,7 +488,7 @@ sub GetRandomHoldMessage
 # range, if any. If a range is found, this method returns the revised advice and the price range that
 # generated it. I'm not using this yet because I need to write a blog post explaining how to utilize it.
 #
-sub rangeFinder
+sub RangeFinder
 {
 	my $advice = shift;
 	my $next_average = shift;
@@ -503,9 +500,9 @@ sub rangeFinder
 	my $first_critical_value = 0;
 	my $last_critical_value = 0;
 	my $baseline_rating = $advice;
-	my $min_price = RoundToTwoDecimals($next_average * $lower_bound);
-	my $max_price = RoundToTwoDecimals($next_average * $upper_bound);
-	my $iteration = RoundToTwoDecimals(($max_price - $min_price) / 100);
+	my $min_price = nearest(0.01, $next_average * $lower_bound);
+	my $max_price = nearest(0.01, $next_average * $upper_bound);
+	my $iteration = nearest(0.01, ($max_price - $min_price) / 100);
 	for (my $price = $min_price; $price <= $max_price; $price += $iteration)
 	{
 		$next_average = CalculateNextEMA($last_average, $price, 60);
@@ -515,12 +512,12 @@ sub rangeFinder
 
 		if ($first_critical_value == 0 && $critical == 0)
 		{
-			$first_critical_value = RoundToTwoDecimals($price);
+			$first_critical_value = nearest(0.01, $price);
 			$advice = $rating;
 		}
 		if ($critical == 0)
 		{
-			$last_critical_value = RoundToTwoDecimals($price);
+			$last_critical_value = nearest(0.01, $price);
 		}
 		$rating = GetRandomHoldMessage();
 	}
