@@ -271,12 +271,12 @@ sub CalculateNextEMA
 # ------------------------------------------------------------------------------------------------------------
 # WatchEMA
 # ------------------------------------------------------------------------------------------------------------
-# $prefix             : string prefix for the config file (i.e. 'five', 'ten')
+# $prefix             : string prefix for the config file (i.e. 'six', 'ten')
 # $days               : numeric number of days for the EMA to watch
 # $price              : today's 24-hour average price
 # $primary_difference : today's primary EMA difference
 # ------------------------------------------------------------------------------------------------------------
-# I'm using this to watch the 5-day and 10-day EMAs to see if there are correlations in critical points on
+# I'm using this to watch the 6-day and 10-day EMAs to see if there are correlations in critical points on
 # trading days. I hope to improve the quality of my critical point detection by watching them.
 #
 sub WatchEMA
@@ -296,7 +296,7 @@ sub WatchEMA
 	               ($difference > 0 && $primary_difference < 0);
 	if ($critical)
 	{
-		say "Interesting data point";
+		say "^-- Interesting data point";
 	}
 
 	if (IsActive())
@@ -312,7 +312,7 @@ sub WatchEMA
 # $price : today's price
 # $days  : number of days in the window
 # ------------------------------------------------------------------------------------------------------------
-# I abstracted these three calculations so I could easily repeat them for 5-day and 10-day EMAs.
+# I abstracted these three calculations so I could easily repeat them for 6-day and 10-day EMAs.
 #
 sub GetEMAInformation
 {
@@ -341,14 +341,14 @@ sub GetBitcoinPriceRating
 	my ($last_average, $next_average, $difference) = GetEMAInformation('last_average', $price, 60);
 
 	my %ema_hash = (
-		5  => [ GetEMAInformation('five_day_ema', $price, 5) ],
+		6  => [ GetEMAInformation('six_day_ema', $price, 6) ],
 		10 => [ GetEMAInformation('ten_day_ema',  $price, 10) ],
 		60 => [ GetEMAInformation('last_average', $price, 60) ]
 	);
 	say Dumper(%ema_hash);
 
-	# TODO: Do more than watch the 5 and 10-day EMAs?
-	WatchEMA('five', 5, $price, $difference);
+	# TODO: Do more than watch the 6-day and 10-day EMAs?
+	WatchEMA('six', 6, $price, $difference);
 	WatchEMA('ten', 10, $price, $difference);
 
 	if (IsActive())
@@ -465,7 +465,8 @@ sub GetRandomHoldMessage
 		'I\'m bored, let\'s memorize some digits of pi. 3.14159265358979 #HODL',
 		'Tip: You can submit your own #HODL ideas by replying. #HODL',
 		'Take a look at #linktrace while you #HODL today.',
-		'Keep Calm and #HODL On http://www.keepcalm-o-matic.co.uk/p/keep-calm-and-hodl-on/'
+		'Keep Calm and #HODL On http://www.keepcalm-o-matic.co.uk/p/keep-calm-and-hodl-on/',
+		'Repeat after me: H, o, l, d. What does that spell? #HODL'
 	);
 	my $list_size = $#hold_messages;
 	my $luck = int(rand($list_size));
