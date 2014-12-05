@@ -340,12 +340,7 @@ sub GetBitcoinPriceRating
 	
 	my ($last_average, $next_average, $difference) = GetEMAInformation('last_average', $price, 60);
 
-	my %ema_hash = (
-		6  => [ GetEMAInformation('six_day_ema', $price, 6) ],
-		10 => [ GetEMAInformation('ten_day_ema',  $price, 10) ],
-		60 => [ GetEMAInformation('last_average', $price, 60) ]
-	);
-	say Dumper(%ema_hash);
+	say "Potential: " . GetMarketPotential($price);
 
 	# TODO: Do more than watch the 6-day and 10-day EMAs?
 	WatchEMA('six', 6, $price, $difference);
@@ -364,6 +359,38 @@ sub GetBitcoinPriceRating
 	say "Advice: $advice";
 
 	return $rating;
+}
+
+# ------------------------------------------------------------------------------------------------------------
+# GetMarketPotential
+# ------------------------------------------------------------------------------------------------------------
+# $price    : today's price
+# ------------------------------------------------------------------------------------------------------------
+# WIP: I intend to have this compute the market potential for today by taking into account each of the EMA
+# trends we watch. I want to issue a [-10%, +10%] rating near critical points in the 60-day EMA.
+#
+sub GetMarketPotential
+{
+	my $price = shift;
+	my $potential = 0;
+
+	my %ema_hash = (
+		6  => [ GetEMAInformation('six_day_ema', $price, 6) ],
+		10 => [ GetEMAInformation('ten_day_ema',  $price, 10) ],
+		60 => [ GetEMAInformation('last_average', $price, 60) ]
+	);
+
+	for my $days (keys %ema_hash)
+	{
+		my $last_average = $ema_hash{$days}[0];
+		my $next_average = $ema_hash{$days}[1];
+		my $diff         = $ema_hash{$days}[2];
+		my $percentage   = $diff / $next_average * 100;
+
+		$potential += ($percentage * $days);
+	}
+
+	return nearest(0.01, $potential);
 }
 
 # ------------------------------------------------------------------------------------------------------------
@@ -506,6 +533,8 @@ sub RangeFinder
 	my $iteration = nearest(0.01, ($max_price - $min_price) / 100);
 	for (my $price = $min_price; $price <= $max_price; $price += $iteration)
 	{
+		say "Potential @ " . nearest(0.01, $price) . ": " . GetMarketPotential($price);
+
 		$next_average = CalculateNextEMA($last_average, $price, 60);
 
 		my $critical = GetCriticalRating($price, $last_average, $next_average, 0);
