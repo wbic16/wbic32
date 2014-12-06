@@ -340,7 +340,7 @@ sub GetBitcoinPriceRating
 	
 	my ($last_average, $next_average, $difference) = GetEMAInformation('last_average', $price, 60);
 
-	say "Potential: " . GetMarketPotential($price);
+	say "Potential: " . GetMarketPotential($price, 1);
 
 	# TODO: Do more than watch the 6-day and 10-day EMAs?
 	WatchEMA('six', 6, $price, $difference);
@@ -364,7 +364,8 @@ sub GetBitcoinPriceRating
 # ------------------------------------------------------------------------------------------------------------
 # GetMarketPotential
 # ------------------------------------------------------------------------------------------------------------
-# $price    : today's price
+# $price : today's price
+# $log   : set to 1 to log an update to algorithm_tracking.json
 # ------------------------------------------------------------------------------------------------------------
 # WIP: I intend to have this compute the market potential for today by taking into account each of the EMA
 # trends we watch. I want to issue a [-10%, +10%] rating near critical points in the 60-day EMA.
@@ -372,6 +373,7 @@ sub GetBitcoinPriceRating
 sub GetMarketPotential
 {
 	my $price = shift;
+	my $update_log = shift;
 	my $potential = 0;
 
 	my %ema_hash = (
@@ -389,8 +391,22 @@ sub GetMarketPotential
 
 		$potential += ($percentage * $days);
 	}
+	$potential = nearest(0.01, $potential);
 
-	return nearest(0.01, $potential);
+	if ($update_log)
+	{
+		my $at_filename = "algorithm_tracking.json";
+		my $algorithm_tracking = read_file($at_filename);
+		my $history_json = decode_json $algorithm_tracking;
+		my %history = %$history_json;
+		my $key = strftime "%m/%d", localtime;
+		# TODO: Replace automated with actual rating once potential is sorted out
+		$history{$key} = [ "automated", $ema_hash{6}[2], $ema_hash{10}[2], $ema_hash{60}[2], $potential ];
+		my $output = to_json( \%history, { ascii => 1, pretty => 1 } );
+		write_file($at_filename, $output);
+	}
+
+	return $potential;
 }
 
 # ------------------------------------------------------------------------------------------------------------
@@ -533,7 +549,7 @@ sub RangeFinder
 	my $iteration = nearest(0.01, ($max_price - $min_price) / 100);
 	for (my $price = $min_price; $price <= $max_price; $price += $iteration)
 	{
-		say "Potential @ " . nearest(0.01, $price) . ": " . GetMarketPotential($price);
+		say "Potential @ " . nearest(0.01, $price) . ": " . GetMarketPotential($price, 0);
 
 		$next_average = CalculateNextEMA($last_average, $price, 60);
 
