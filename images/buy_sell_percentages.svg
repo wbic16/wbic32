@@ -17,7 +17,41 @@
    inkscape:version="0.48.0 r9654"
    sodipodi:docname="buy_sell_percentages.svg">
   <defs
-     id="defs4" />
+     id="defs4">
+    <marker
+       inkscape:stockid="Arrow1Mstart"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Mstart"
+       style="overflow:visible">
+      <path
+         id="path3817"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none"
+         transform="scale(0.4) translate(10,0)" />
+    </marker>
+    <filter
+       inkscape:collect="always"
+       id="filter4442"
+       x="-0.072387047"
+       width="1.1447741"
+       y="-0.35062616"
+       height="1.7012523">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="2.9515453"
+         id="feGaussianBlur4444" />
+    </filter>
+    <filter
+       inkscape:collect="always"
+       id="filter4466">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="0.14757726"
+         id="feGaussianBlur4468" />
+    </filter>
+  </defs>
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -25,11 +59,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.49497475"
-     inkscape:cx="372.78699"
-     inkscape:cy="825.40111"
+     inkscape:zoom="1.979899"
+     inkscape:cx="316.17686"
+     inkscape:cy="683.39877"
      inkscape:document-units="px"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="layer4"
      showgrid="false"
      showguides="true"
      inkscape:guide-bbox="true"
@@ -52,7 +86,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -60,26 +94,28 @@
      inkscape:groupmode="layer"
      id="layer2"
      inkscape:label="Background"
-     style="display:inline">
-    <path
-       style="fill:none;stroke:#000000;stroke-width:0.93682718;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:0;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
-       d="m 37.423114,289.19193 c 129.437106,0 258.874216,0 388.311316,0 0,85.86296 0,171.72593 0,257.58889 -129.4371,0 -258.87421,0 -388.311316,0 0,-85.86296 0,-171.72593 0,-257.58889 z"
-       id="rect3039"
-       inkscape:connector-curvature="0" />
-  </g>
+     style="display:inline" />
   <g
      inkscape:groupmode="layer"
      id="layer6"
      inkscape:label="Hold"
      style="display:inline">
     <image
-       style="display:inline"
-       y="-467.81076"
-       x="-529.10669"
+       style="display:inline;stroke:#0048ba;stroke-opacity:1;opacity:1;stroke-linejoin:round;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;fill:none"
+       y="305.04639"
+       x="53.664352"
        id="image3055"
        xlink:href="file:///E:/twitter/images/hold.png"
        height="220"
        width="440" />
+    <rect
+       style="fill:none;stroke:none"
+       id="rect3800"
+       width="191.07143"
+       height="126.78571"
+       x="152.14285"
+       y="269.50504"
+       ry="33.214287" />
   </g>
   <g
      inkscape:groupmode="layer"
@@ -88,8 +124,8 @@
      style="display:inline">
     <image
        style="display:inline"
-       y="-290.02393"
-       x="26.477219"
+       y="305.46097"
+       x="53.664352"
        id="image3108"
        xlink:href="file:///E:/twitter/images/buy_10percent.png"
        height="220"
@@ -102,8 +138,8 @@
      style="display:inline">
     <image
        style="display:inline"
-       y="-122.33859"
-       x="-745.2793"
+       y="305.29703"
+       x="53.664352"
        id="image3097"
        xlink:href="file:///E:/twitter/images/sell_10percent.png"
        height="220"
@@ -115,12 +151,12 @@
      inkscape:label="Cash"
      style="display:inline">
     <rect
-       style="fill:#666666;display:inline"
+       style="fill:#666666;stroke:#000000;stroke-opacity:1;display:inline;filter:url(#filter4466)"
        id="rect2987-8"
        width="97.858788"
        height="20.203024"
-       x="53.664352"
-       y="312.14368" />
+       x="155.18468"
+       y="220.21979" />
     <rect
        style="fill:#666666;display:inline"
        id="rect2987-4-4"
@@ -186,25 +222,18 @@
        y="510.99646" />
     <image
        style="display:inline"
-       y="-418.73706"
-       x="558.92163"
+       y="333.53073"
+       x="937.9834"
        id="image3209"
        xlink:href="file:///E:/twitter/images/cash.png"
-       height="833"
-       width="1553" />
+       width="368"
+       height="200" />
   </g>
   <g
      inkscape:label="Bitcoin"
      inkscape:groupmode="layer"
      id="layer1"
      style="display:inline">
-    <rect
-       style="fill:#666666"
-       id="rect2987"
-       width="97.858788"
-       height="20.203024"
-       x="53.664352"
-       y="312.23383" />
     <rect
        style="fill:#666666"
        id="rect2987-4"
@@ -269,11 +298,19 @@
        x="53.664352"
        y="511.08661" />
     <image
-       y="217.65903"
-       x="-1282.1854"
+       y="37.498028"
+       x="303.33182"
        id="image3238"
        xlink:href="file:///E:/twitter/images/bitcoin.png"
-       height="833"
-       width="1433" />
+       width="344"
+       height="200" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:2.94309545;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:5.2"
+       id="rect3806"
+       width="132.51894"
+       height="95.466743"
+       x="253.47493"
+       y="381.67349"
+       ry="19.01158" />
   </g>
 </svg>
