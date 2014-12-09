@@ -17,7 +17,7 @@
 #     --      -   -                          -+-
 # -++-         -+-
 #
-# Notice how we trigger buys and sells at _critical points in the price curve. If the price is rising or
+# Notice how we trigger buys and sells at _critical_ points in the price curve. If the price is rising or
 # falling too quickly, we avoid trading because it is almost impossible to catch a falling knife or predict
 # when a price spike will end.
 #=============================================================================================================
@@ -48,7 +48,7 @@ require 'login_credentials.inc';
 #
 my $mode = 'Active';
 our $config_file = 'willbot.config';
-my $version = '0.1.0.2';
+my $version = '0.1.0.3';
 
 # ------------------------------------------------------------------------------------------------------------
 # Kickstart
@@ -393,7 +393,7 @@ sub GetMarketPotential
 	}
 	$potential = nearest(0.01, $potential);
 
-	if ($update_log)
+	if ($update_log and IsActive())
 	{
 		my $at_filename = "algorithm_tracking.json";
 		my $algorithm_tracking = read_file($at_filename);
