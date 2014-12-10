@@ -487,6 +487,31 @@ sub GetCriticalRating
 }
 
 # ------------------------------------------------------------------------------------------------------------
+# LoadUsedHoldMessages
+# ------------------------------------------------------------------------------------------------------------
+# Loads the current set of used hold messages, identified by index.
+#
+sub LoadUsedHoldMessages
+{
+	my @used_hold_messages = ();
+  	if (exists $parms{'used_hold_messages'})
+	{
+		# TODO: Is loading an array from a config file really this hard?
+		my $loader = $parms{'used_hold_messages'};
+		if (ref($loader) eq 'ARRAY')
+		{
+			@used_hold_messages = @$loader;
+		}
+		else
+		{
+			push(@used_hold_messages, $loader);
+		}
+	}
+
+	return @used_hold_messages;
+}
+
+# ------------------------------------------------------------------------------------------------------------
 # GetRandomHoldMessage
 # ------------------------------------------------------------------------------------------------------------
 # Holds a list of potential #HODL messages to reduce boredom. Currently, I'm targeting 85-90% of days as hold
@@ -494,6 +519,8 @@ sub GetCriticalRating
 #
 sub GetRandomHoldMessage
 {
+	my @used_hold_messages = LoadUsedHoldMessages();
+	my %used_map = map { $_ => 1 } @used_hold_messages;
 	my @hold_messages = (
 		'Ho Ho Ho Hold! #HODL',
 	  	'#HODLing like a boss',
@@ -509,12 +536,39 @@ sub GetRandomHoldMessage
 		'Tip: You can submit your own #HODL ideas by replying. #HODL',
 		'Take a look at #linktrace while you #HODL today.',
 		'Keep Calm and #HODL On http://www.keepcalm-o-matic.co.uk/p/keep-calm-and-hodl-on/',
-		'Repeat after me: H, o, l, d. What does that spell? #HODL'
+		'Repeat after me: H, o, l, d. What does that spell? #HODL',
+		'Oh, the drudgery! I was destined for volatility management! Why, #Bitcoin, why!? #HODL'
 	);
 	my $list_size = $#hold_messages;
-	my $luck = int(rand($list_size));
+	my @possible_hold_messages;
+	for (my $i = 0; $i <= $list_size; ++$i)
+	{
+		if (!exists($used_map{$i}))
+		{
+			push (@possible_hold_messages, $i);
+		}
+	}
+	my $possible_size = $#possible_hold_messages;
+	if ($possible_size == 0)
+	{
+		@possible_hold_messages = ();
+		for (my $i = 0; $i <= $list_size; ++$i)
+		{
+			push (@possible_hold_messages, $i);
+		}
+		$possible_size = $list_size;
+		@used_hold_messages = ();
+	}
+	my $luck = int(rand($possible_size));
+	my $index = $possible_hold_messages[$luck];
 
-	return $hold_messages[$luck];
+	if (IsActive())
+	{
+		push (@used_hold_messages, $index);
+		$config->param("used_hold_messages", \@used_hold_messages);
+	}
+
+	return $hold_messages[$index];
 }
 
 # ------------------------------------------------------------------------------------------------------------
