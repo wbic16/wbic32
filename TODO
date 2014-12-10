@@ -1,3 +1,6 @@
+* Implement a distance from last-buy or last-sell test
+** 3% buy if last-sell is at least 30% higher than today's price and the average is critical
+** 3% sell if the last-buy is at least 30% lower than today's price and the average is critical
 * Implement Percentage-Based Buy and Sell Advice
 ** 2% increments
 ** nice images to go with it
