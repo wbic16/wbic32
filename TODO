@@ -1,6 +1,7 @@
 * Evaluate the impact of a wider window for trends extending beyond 6 months
 ** Would need to sample less often, weekly?
 * Percentage-Based Buy and Sell Advice
+** finish the rating algorithm
 ** 1-10% increments
 ** nice images to go with it
 * Setup an organized module
