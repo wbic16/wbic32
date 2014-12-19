@@ -48,7 +48,9 @@ require 'login_credentials.inc';
 #
 my $mode = 'Active';
 our $config_file = 'willbot.config';
-my $version = '0.1.0.3';
+my $version = '0.1.1.0';
+my $magic_number = 42;
+my $unchanged_ema_ratio = 0.0025;
 
 # ------------------------------------------------------------------------------------------------------------
 # Kickstart
@@ -289,15 +291,10 @@ sub WatchEMA
 	my $key = "${prefix}_day_ema";
 	my $ema = $parms{$key};
 	my $next_ema = CalculateNextEMA($ema, $price, $days);
-	my $difference = nearest(0.01, $next_ema - $ema);
-	say "${days}-Day: $next_ema ($difference)";
+	my $ratio = GetPriceRatio($next_ema, $ema);
+	say "${days}-Day: $next_ema ($ratio)";
 
-	my $critical = ($difference < 0 && $primary_difference > 0) ||
-	               ($difference > 0 && $primary_difference < 0);
-	if ($critical)
-	{
-		say "^-- Interesting data point";
-	}
+	# TODO: change $primary_difference to $primary_ratio and compare to $ratio here.
 
 	if (IsActive())
 	{
@@ -351,12 +348,12 @@ sub GetBitcoinPriceRating
 		$config->param("last_average", $next_average);
 	}
 	say "Average: $next_average";
-	my $critical = GetCriticalRating($price, $last_average, $next_average, 1);
-	$rating = GetPriceRating($price, $next_average, $critical, $rating);
+	my $ratio = GetPriceRatio($last_average, $next_average, 1);
+	$rating = GetPriceRating($next_average, $ratio, $rating);
 
 	# TODO: Publish this once it improves and @wbic16 has posted the blog article
-	my $advice = RangeFinder($rating, $next_average, $last_average, 0.5, 2.0, $rating);
-	say "Advice: $advice";
+	my $advice = RangeFinder($rating, $next_average, $last_average, 0.5, 2, $rating);
+	say "Advice: $advice 24-hour average price.";
 
 	return $rating;
 }
@@ -387,11 +384,10 @@ sub GetMarketPotential
 		my $last_average = $ema_hash{$days}[0];
 		my $next_average = $ema_hash{$days}[1];
 		my $diff         = $ema_hash{$days}[2];
-		my $percentage   = $diff / $next_average * 100;
-
-		$potential += ($percentage * $days);
+		my $ratio = GetPriceRatio($next_average, $last_average);
+		$potential += abs($ratio);
 	}
-	$potential = nearest(0.01, $potential);
+	$potential = nearest(0.01, $potential * $magic_number);
 
 	if ($update_log and IsActive())
 	{
@@ -412,78 +408,84 @@ sub GetMarketPotential
 # ------------------------------------------------------------------------------------------------------------
 # GetPriceRating
 # ------------------------------------------------------------------------------------------------------------
-# $price    : today's 24-hour average price
-# $ema      : today's 60-day smoothed EMA
-# $critical : critical point indicator { 0 = not critical, 0.5 = somewhat, 1.0 = definitely }
-# $rating   : the baseline #HODL message
+# $ema    : today's 60-day smoothed EMA
+# $dema   : rate of change for today's EMA
+# $rating : the baseline #HODL message
 # ------------------------------------------------------------------------------------------------------------
-# Compares today's price to today's EMA and issues buy or sell advice. Not very well designed atm. Needs work.
-#
-# TODO:
-# * Provide a range of 1% to 10% long-term holdings buy or sell advice
-# * Certainty of sell or buy corresponds to how much we advise trading on a given day
+# Compares today's price to today's EMA and issues buy or sell advice. WIP.
 #
 sub GetPriceRating
 {
-	my $price = shift;
 	my $ema = shift;
-	my $critical = shift;
+	my $dema = abs(shift);
 	my $rating = shift;
 
-	if ($critical == 0   && $price > $ema * 1.05) { $rating = 'Soft Sell'; }
-	if ($critical == 0   && $price > $ema * 1.11) { $rating = 'Peak Sell'; }
-	if ($critical == 0.5 && $price > $ema * 1.25) { $rating = 'Spiking Sell'; }
-	if ($critical == 0.5 && $ema * 0.75 > $price) { $rating = 'Dropping Buy'; }
-	if ($critical == 0   && $ema * 0.95 > $price) { $rating = 'Valley Buy'; }
+	my $factor = 2.5;
+	if ($dema > 0.001)
+	{
+		$factor = nearest(0.01, $unchanged_ema_ratio / $dema * 40);
+	}
+
+	my $slowly_changing_ema_ratio = 0.005;
+	my $minimum_trade_factor = 50;
+	my $normal_trade_factor = 70;
+	my $strong_trade_factor = 100;
+	my $epsilon = $ema * $unchanged_ema_ratio * 3;
+
+	my $base_rate = 0;
+	if ($dema <= $unchanged_ema_ratio)
+	{
+		$base_rate = 3;
+	}
+	elsif ($dema <= $slowly_changing_ema_ratio)
+	{
+		$base_rate = 2;
+	}
+
+	if ($base_rate > 0)
+	{
+		my $maximum_buy  = $ema - $epsilon;
+		my $minimum_sell = $ema + $epsilon;
+		my $rate = 0;
+
+		if ($factor > $minimum_trade_factor)
+		{
+			$rate = $base_rate;
+		}
+		elsif ($factor > $normal_trade_factor)
+		{
+			$rate = $base_rate * 2;
+		}
+		elsif ($factor >= $strong_trade_factor)
+		{
+			$rate = $base_rate * 3;
+		}
+
+		# TODO: WIP
+		#if ($price > $minimum_sell) { $rating = "Sell ${base_rate}%"; }
+		#elsif ($price < $maximum_buy) { $rating = "Buy ${base_rate}%"; }
+	}
 
 	return $rating;
 }
 
 # ------------------------------------------------------------------------------------------------------------
-# GetCriticalRating
+# GetPriceRatio
 # ------------------------------------------------------------------------------------------------------------
-# $price       : today's 24-hour average price
-# $previousEma : yesterday's primary EMA
-# $ema         : today's primary EMA
-# $show        : print suppression (used when calling this from a loop)
-# ------------------------------------------------------------------------------------------------------------
-# Compares yesterday's EMA to today's and marks the difference critical as follows. This isn't a scalable
-# method. Needs to be re-worked to scale with the price.
-#
-# If the values differ by...
-# 0.0 : $1/BTC or more
-# 0.5 : $0.20/BTC to $1.00/BTC
-# 1.0 : $0.20/BTC to $0.00/BTC
-#
-# TODO:
-# * Use more than 1 day of history to avoid 1-day price gaming
-# * Adjust the critical ranges with the price
-# * Make the critical rating continuous (affects GetPriceRating)
-#
-sub GetCriticalRating
+sub GetPriceRatio
 {
-	my $price = shift;
-	my $previousEma = shift;
-	my $ema = shift;
-	my $show = shift;
+	my $value = shift;
+	my $prior = shift;
+	my $show  = shift;
 
-	my $difference = nearest(0.01, $ema - $previousEma);
+	my $difference = nearest(0.01, $value - $prior);
+	my $ratio = nearest(0.0001, $difference / $prior);
+
 	if ($show)
 	{
-		say "Difference: $difference"
+		say "Ratio: $ratio";
 	}
-
-	my $critical = 1;
-	if (abs($difference) < 0.2)
-	{
-		$critical = 0;
-	}
-	elsif (abs($difference) < 1.0)
-	{
-		$critical = 0.5;
-	}
-
-	return $critical;
+	return $ratio;
 }
 
 # ------------------------------------------------------------------------------------------------------------
@@ -603,19 +605,17 @@ sub RangeFinder
 	my $iteration = nearest(0.01, ($max_price - $min_price) / 100);
 	for (my $price = $min_price; $price <= $max_price; $price += $iteration)
 	{
-		say "Potential @ " . nearest(0.01, $price) . ": " . GetMarketPotential($price, 0);
-
 		$next_average = CalculateNextEMA($last_average, $price, 60);
 
-		my $critical = GetCriticalRating($price, $last_average, $next_average, 0);
-		$rating = GetPriceRating($price, $next_average, $critical, $rating);
+		my $ratio = GetPriceRatio($last_average, $next_average, 0);
+		my $local_rating = GetPriceRating($next_average, $ratio, $rating);
 
-		if ($first_critical_value == 0 && $critical == 0)
+		if (($first_critical_value == 0) && (abs($ratio) <= $unchanged_ema_ratio) && ($local_rating ne $rating))
 		{
 			$first_critical_value = nearest(0.01, $price);
-			$advice = $rating;
+			$advice = $local_rating;
 		}
-		if ($critical == 0)
+		if ((abs($ratio) <= $unchanged_ema_ratio) && ($local_rating ne $rating))
 		{
 			$last_critical_value = nearest(0.01, $price);
 		}
@@ -624,7 +624,7 @@ sub RangeFinder
 
 	if ($first_critical_value != 0 && $last_critical_value != $first_critical_value)
 	{
-		$advice .= ": $first_critical_value - $last_critical_value";
+		$advice .= ": $first_critical_value to $last_critical_value";
 	}
 	return $advice;
 }
