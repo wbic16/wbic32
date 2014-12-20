@@ -1,21 +1,14 @@
-* Evaluate the impact of a wider window for trends extending beyond 6 months
-** Would need to sample less often, weekly?
 * Percentage-Based Buy and Sell Advice
 ** finish the rating algorithm
 ** 1-10% increments
 ** nice images to go with it
+** remove dependency on non-averaged price (no need for short-term over-correction)
 * Setup an organized module
 * Integrate a range-checker for buy/sell advice regions
 * add error handling
-** what if twitter is down?
-** what if bitcoinaverage is down?
-** what if my local disk is full?
-** what if my changetip account is empty?
-* add symmetry
-** min-buy: critical && price below average
-** max-sell: critical && price above average
-** under-buy: price well below average && semi-critical
-** over-sell: price well above average && semi-critical
-** hold: all other days
-* automate volatility targets
-** bollinger bands?
+** twitter is down?
+** bitcoinaverage is down?
+** local disk is full?
+** changetip account is empty?
+** changetip is down?
+** advice was already posted?
