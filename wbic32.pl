@@ -58,7 +58,7 @@ my $unchanged_ema_ratio = 0.0025;
 my $arg = shift;
 if (!defined $arg) { $arg = $mode; }
 our $config = new Config::Simple($config_file);
-if ($config == 0)
+if (!defined($config) || $config == 0)
 {
 	$config = new Config::Simple(syntax=>'simple');
 }
