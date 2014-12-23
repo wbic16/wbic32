@@ -3,7 +3,8 @@
 # (c) 2013-2014 Will Bickford
 # License: CC BY-SA 4.0 (http://creativecommons.org/licenses/by-sa/4.0/)
 #=============================================================================================================
-# Here's a text-plot of what # we're trying to do with EMA analysis. The points marked with a '-' are non-
+# Here's a text-plot of what we're trying to do with EMA analysis. The curve below is a representation of the
+# *average* Bitcoin price over some theoretical period of time. The points marked with a '-' are non-
 # trading days. The points marked with a '+' are trading days.
 #                                                   -
 #                                                   -
@@ -18,8 +19,9 @@
 # -++-         -+-
 #
 # Notice how we trigger buys and sells at _critical_ points in the price curve. If the price is rising or
-# falling too quickly, we avoid trading because it is almost impossible to catch a falling knife or predict
-# when a price spike will end.
+# falling too quickly, we avoid trading. This allows us to find every major peak and valley, but it does not
+# allow us to predict where the next critical point will be. We're not timing the market so much as waiting
+# for the right conditions to emerge.
 #=============================================================================================================
 
 # ------------------------------------------------------------------------------------------------------------
