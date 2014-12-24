@@ -7,7 +7,7 @@ perl:
 #    - cpanm Test::Pod # optional dependency
 #
 install:
-    - cpanm -v --installdeps --notest --mirror http://cpan.mirrors.travis-ci.org .
+    - cpanm --quiet --installdeps --notest .
 
 script: "perl -c wbic32.pl"
 # branches:
