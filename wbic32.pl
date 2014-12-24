@@ -29,6 +29,8 @@
 # ------------------------------------------------------------------------------------------------------------
 use strict;
 use warnings;
+use feature qw(say);
+
 use Config::Simple;
 use Data::Dumper;
 use File::Slurp;
@@ -40,8 +42,8 @@ use Net::Twitter;
 use POSIX;
 use Scalar::Util 'blessed';
 use Time::Piece;
-use feature qw(say);
-require 'login_credentials.inc';
+
+require './login_credentials.inc';
 
 # ------------------------------------------------------------------------------------------------------------
 # Module Configuration
