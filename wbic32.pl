@@ -543,7 +543,8 @@ sub GetRandomHoldMessage
 		'Take a look at #linktrace while you #HODL today.',
 		'Keep Calm and #HODL On http://www.keepcalm-o-matic.co.uk/p/keep-calm-and-hodl-on/',
 		'Repeat after me: H, o, l, d. What does that spell? #HODL',
-		'Oh, the drudgery! I was destined for volatility management! Why, #Bitcoin, why!? #HODL'
+		'Oh, the drudgery! I was destined for volatility management! Why, #Bitcoin, why!? #HODL',
+		'Come on, come on! I haven\'t got all day... Actually, I do! #HODL'
 	);
 	my $list_size = $#hold_messages;
 	my @possible_hold_messages;
