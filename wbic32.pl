@@ -646,6 +646,11 @@ sub PostBitcoinRating
 	my $date = shift;
 	my $rating = shift;
 	my $message = "Willbot #Bitcoin Rating for $date: $rating";
+	my $xmas_test = strftime "%m-%d", localtime;
+	if ($xmas_test eq "12-25")
+	{
+		$message = "Merry Christmas! Spread some holiday cheer today!";
+	}	
 	say "Length: " . length($message);
 	say $message;
 	if (IsActive())
