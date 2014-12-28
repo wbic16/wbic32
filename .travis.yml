@@ -9,7 +9,7 @@ perl:
 install:
     - cpanm --quiet --installdeps --notest .
 
-script: "perl -c wbic32.pl"
+script: "perl wbic32.pl dry-run"
 # branches:
 #   only:
 #     - master
