@@ -1,3 +1,5 @@
+* add a user database and stop posting new followers to github
+* automate follow-back and management of follower-to-tip list
 * Percentage-Based Buy and Sell Advice
 ** finish the rating algorithm
 ** 1-10% increments
