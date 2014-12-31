@@ -8,11 +8,10 @@
 * Setup an organized module
 * Integrate a range-checker for buy/sell advice regions
 * add error handling
-** twitter is down?
-** bitcoinaverage is down?
-** local disk is full?
-** changetip account is empty?
-** changetip is down?
-** advice was already posted?
-** local net is down?
-** local power is down?
+** 
+** twitterDown?
+** bitcoinaverageDown?
+** diskFull?
+** changetipEmpty?
+** doubleEntry?
+** noNetwork?
