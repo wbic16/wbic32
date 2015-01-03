@@ -1,6 +1,6 @@
 #=============================================================================================================
 # @wbic32 Twitter Manager
-# (c) 2013-2014 Will Bickford
+# (c) 2013-2015 Will Bickford
 # License: CC BY-SA 4.0 (http://creativecommons.org/licenses/by-sa/4.0/)
 #=============================================================================================================
 # Here's a text-plot of what we're trying to do with EMA analysis. The curve below is a representation of the
@@ -210,7 +210,6 @@ sub LoadBitcoinPriceData
 	}
 	else
 	{
-		# TODO: Use $date_difference to adjust averaging correctly
 		if (IsActive())
 		{		
 			$config->param("last_price", $price);
@@ -343,7 +342,6 @@ sub GetBitcoinPriceRating
 
 	say "Potential: " . GetMarketPotential($price, 1);
 
-	# TODO: Do more than watch the 6-day and 10-day EMAs?
 	WatchEMA('six', 6, $price, $difference);
 	WatchEMA('ten', 10, $price, $difference);
 
