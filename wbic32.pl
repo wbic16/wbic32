@@ -52,7 +52,7 @@ require './login_credentials.inc';
 #
 my $mode = 'Active';
 our $config_file = 'willbot.config';
-my $version = '0.1.1.0';
+my $version = '0.2.0.0';
 my $magic_number = 42;
 my $unchanged_ema_ratio = 0.0025;
 
@@ -351,13 +351,11 @@ sub GetBitcoinPriceRating
 	}
 	say "Average: $next_average";
 	my $ratio = GetPriceRatio($last_average, $next_average, 1);
-	$rating = GetPriceRating($next_average, $ratio, $rating);
+	$rating = GetPriceRating($next_average, $ratio, $rating, 1);
 
 	# TODO: Publish this once it improves and @wbic16 has posted the blog article
 	my $advice = RangeFinder($rating, $next_average, $last_average, 0.5, 2, $rating);
-	say "Advice: $advice 24-hour average price.";
-
-	return $rating;
+	return "$advice 24-hour average price.";
 }
 
 # ------------------------------------------------------------------------------------------------------------
@@ -413,16 +411,21 @@ sub GetMarketPotential
 # $ema    : today's 60-day smoothed EMA
 # $dema   : rate of change for today's EMA
 # $rating : the baseline #HODL message
+# $change : 1 => we should change our market rating
 # ------------------------------------------------------------------------------------------------------------
 # Compares today's price to today's EMA and issues buy or sell advice. WIP.
 #
 sub GetPriceRating
 {
 	my $ema = shift;
-	my $dema = abs(shift);
+	my $derivative = shift;
 	my $rating = shift;
+	my $change = shift;
 
+	my $dema = abs($derivative);
+	my $market = $parms{'market'};
 	my $factor = 2.5;
+	
 	if ($dema > 0.001)
 	{
 		$factor = nearest(0.01, $unchanged_ema_ratio / $dema * 40);
@@ -433,6 +436,22 @@ sub GetPriceRating
 	my $normal_trade_factor = 70;
 	my $strong_trade_factor = 100;
 	my $epsilon = $ema * $unchanged_ema_ratio * 3;
+
+	if ($change)
+	{
+		if ($derivative < -$slowly_changing_ema_ratio)
+		{
+			$market = 'bear';
+		}
+		elsif ($derivative > $slowly_changing_ema_ratio)
+		{
+			$market = 'bull';
+		}
+		else
+		{
+			say " *** \\o/ Trading Day \\o/ ***";
+		}
+	}
 
 	my $base_rate = 0;
 	if ($dema <= $unchanged_ema_ratio)
@@ -463,10 +482,17 @@ sub GetPriceRating
 			$rate = $base_rate * 3;
 		}
 
-		# TODO: WIP
-		#if ($price > $minimum_sell) { $rating = "Sell ${base_rate}%"; }
-		#elsif ($price < $maximum_buy) { $rating = "Buy ${base_rate}%"; }
+		if ($market eq 'bear')
+		{
+			$rating = "Buy ${base_rate}%";
+		}
+		elsif ($market eq 'bull')
+		{
+			$rating = "Sell ${base_rate}%";
+		}
 	}
+
+	$config->param("market", "\"$market\"");
 
 	return $rating;
 }
@@ -480,7 +506,7 @@ sub GetPriceRatio
 	my $prior = shift;
 	my $show  = shift;
 
-	my $difference = nearest(0.01, $value - $prior);
+	my $difference = nearest(0.01, $prior - $value);
 	my $ratio = nearest(0.0001, $difference / $prior);
 
 	if ($show)
@@ -610,8 +636,9 @@ sub RangeFinder
 	{
 		$next_average = CalculateNextEMA($last_average, $price, 60);
 
+		my $changeMarket = 0;
 		my $ratio = GetPriceRatio($last_average, $next_average, 0);
-		my $local_rating = GetPriceRating($next_average, $ratio, $rating);
+		my $local_rating = GetPriceRating($next_average, $ratio, $rating, $changeMarket);
 
 		if (($first_critical_value == 0) && (abs($ratio) <= $unchanged_ema_ratio) && ($local_rating ne $rating))
 		{

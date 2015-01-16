@@ -1,3 +1,10 @@
+Version 0.2.0.0
+===============
+* First version to post percentage-based buy/sell ranges.
+** Keeps track of whether we're in a bear or bull market based upon prior
+results.
+** Uses the current market condition to determine buy vs sell.
+
 Version 0.1.1.0
 ===============
 * Baseline for percentage-based buy and sell advice

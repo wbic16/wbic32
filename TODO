@@ -1,14 +1,10 @@
-* Percentage-Based Buy and Sell Advice
-** finish the rating algorithm
-** 1-10% increments
-** nice images to go with it
-** remove dependency on non-averaged price (no need for short-term over-correction)
+* Buy/Sell Images
+* remove dependency on non-averaged price (no need for short-term over-correction)
 * Setup an organized module
 * add a user database and stop posting new followers to github
 * automate follow-back and management of follower-to-tip list
 * Integrate a range-checker for buy/sell advice regions
 * add error handling
-** 
 ** twitterDown?
 ** bitcoinaverageDown?
 ** diskFull?
